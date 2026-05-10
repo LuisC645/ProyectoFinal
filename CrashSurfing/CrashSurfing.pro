@@ -10,10 +10,14 @@ CONFIG += c++17
 
 SOURCES += \
     core\main.cpp \
-    core\mainwindow.cpp
+    core\mainwindow.cpp \
+    entities/entity.cpp \
+    entities/player.cpp
 
 HEADERS += \
-    core\mainwindow.h
+    core\mainwindow.h \
+    entities/entity.h \
+    entities/player.h
 
 FORMS += \
     core\mainwindow.ui
