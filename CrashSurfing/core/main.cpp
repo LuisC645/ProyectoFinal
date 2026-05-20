@@ -1,30 +1,38 @@
 #include <QApplication>
 #include <QDebug>
+#include "core/game.h"
 #include "entities/player.h"
+#include "entities/obstacle.h"
+#include "entities/enemy.h"
 
 int main(int argc, char *argv[])
 {
-    qDebug() << "test";
+    qDebug() << "Test";
 
-    Player crash;
+    Game game;
+    qDebug() << "Juego iniciado. Puntaje inicial:" << game.getScore();
 
-    qDebug() << "Vidas init:" << crash.getLives();
-    qDebug() << "Posicion init:" << crash.getPosition().x() << "," << crash.getPosition().y();
+    // Vel a crash
+    game.getPlayer()->setVelocity(QVector2D(5.0f, 0.0f));
 
-    crash.setVelocity(QVector2D(10.0f, 5.0f));
-    qDebug() << "Vel:" << crash.getVelocity().x() << "," << crash.getVelocity().y();
+    // otras entidades
+    Obstacle* sierra = new Obstacle();
+    sierra->setVelocity(QVector2D(-2.0f, 0.0f));
+    game.addEntity(sierra);
 
-    qDebug() << "Sim - 3 movimientos";
+    Enemy* dron = new Enemy();
+    dron->setVelocity(QVector2D(0.0f, 3.0f));
+    game.addEntity(dron);
 
-    float deltaTime = 1.0f; // paso 1s
+    qDebug() << "Entidades in Game.";
+    qDebug() << "Testeando 1 frame";
 
-    for (unsigned short i = 1; i <= 3; i++) {
-        crash.update(deltaTime);
+    game.update(1.0f);
 
-        qDebug() << "Frame" << i << "- Nueva Posicion -> X:" << crash.getPosition().x() << " Y:" << crash.getPosition().y();
-    }
+    // Se movio crash?
+    qDebug() << "Nueva Posicion Crash -> X:" << game.getPlayer()->getPosition().x();
 
-    qDebug() << "Funciona gracias a Lucho como siempre";
+    qDebug() << "Funciona gracias a Lucho como siempre.";
 
     return 0;
 }
