@@ -21,6 +21,10 @@ public:
     void update(float dt);
     void addEntity(Entity* e);
 
+    // olision
+    void loadLevel();         // colocar obj
+    void checkCollisions();   // colision
+
     // Getters
     Player* getPlayer() const { return player; }
     unsigned short getScore() const { return score; }
