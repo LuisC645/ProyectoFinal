@@ -12,7 +12,8 @@ MainWindow::MainWindow(QWidget *parent)
     game = new Game();
     game->loadLevel();
 
-    scene = new QGraphicsScene(0, 0, 800, 600, this);
+    //
+    scene = new QGraphicsScene(0, 0, 5000, 600, this);
     scene->setBackgroundBrush(Qt::black);
 
     view = new QGraphicsView(scene, this);
@@ -22,7 +23,7 @@ MainWindow::MainWindow(QWidget *parent)
     view->setFocusPolicy(Qt::NoFocus);
     setCentralWidget(view);
 
-    setFixedSize(800, 600);
+    setFixedSize(1024, 600);
     setWindowTitle("Crash Surfing - Pre-Alpha");
 
     visualPlayer = scene->addRect(0, 0, 40, 40, QPen(Qt::NoPen), QBrush(Qt::blue));
@@ -48,11 +49,20 @@ void MainWindow::keyPressEvent(QKeyEvent *event)
 {
     if (!game || !game->getPlayer()) return;
 
-    if (event->key() == Qt::Key_Right) {
-        game->getPlayer()->setVelocity(QVector2D(200.0f, 0.0f));
+    Player* player = dynamic_cast<Player*>(game->getPlayer());
+    if (!player) return;
+
+    // Parabola salto
+    else if (event->key() == Qt::Key_Space || event->key() == Qt::Key_Up) {
+        player->jump();
     }
-    else if (event->key() == Qt::Key_Left) {
-        game->getPlayer()->setVelocity(QVector2D(-200.0f, 0.0f));
+
+    // pesado (test)
+    else if (event->key() == Qt::Key_C) {
+        player->collectItem();
+        if (player->getIsGlutton()) {
+            qDebug() << "Pesado";
+        }
     }
 }
 
@@ -71,7 +81,11 @@ void MainWindow::updateGameLoop()
 
     game->update(0.016f);
 
+    // Actualizar
     float newX = game->getPlayer()->getPosition().x();
     float newY = game->getPlayer()->getPosition().y();
+
     visualPlayer->setPos(newX, newY);
+    view->centerOn(newX + 450, 300);
+
 }
