@@ -2,43 +2,36 @@
 #define PLAYER_H
 
 #include "entity.h"
+#include <QVector2D>
 
 class Player : public Entity
 {
 private:
-    int lives;
-    bool invulnerable;
-
-    float startY;
-    float v0y;
-    float baseGravity;
-    float gravity;
-    float timeJumping;
     bool isJumping;
+    bool isGlutton;
+    int fruitCount;
+    int lives;
 
-    bool isGlutton;     // Personalidad 1: Si come mucho, se vuelve pesado (gravedad aumenta)
-    bool isScared;      // Personalidad 2: Si el enemigo está cerca, corre mas rapido
-    int itemsCollected; // Contador para activar "isGlutton"
+    // Estados de control
+    bool isStunned;
+    float stunTimer;
 
 public:
     Player();
-    ~Player();
 
     void update(float dt) override;
     void onCollision(Entity* e) override;
 
-    void input();
-    void applyPhysics(float dt);
-
     void jump();
     void collectItem();
-    void checkScaredStatus(float enemyX, float enemyY);
+    void takeDamage();
 
-    int getLives() const { return lives; }
-    void setLives(int l) { lives = l; }
+    // Getters básicos
     bool getIsJumping() const { return isJumping; }
+    int getLives() const { return lives; }
+
+    void setLives(int newLives) { lives = newLives; }
     bool getIsGlutton() const { return isGlutton; }
-    bool getIsScared() const { return isScared; }
 };
 
 #endif // PLAYER_H

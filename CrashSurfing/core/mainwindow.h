@@ -5,6 +5,10 @@
 #include <QGraphicsScene>
 #include <QGraphicsView>
 #include <QGraphicsRectItem>
+#include <QTimer>
+#include <QKeyEvent>
+#include <vector>
+
 #include "core/game.h"
 
 QT_BEGIN_NAMESPACE
@@ -36,5 +40,7 @@ private:
 
     QGraphicsRectItem* visualPlayer;
     QTimer* timer;
+
+    std::vector<QGraphicsRectItem*> visualItems;
 };
 #endif // MAINWINDOW_H

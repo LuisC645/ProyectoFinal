@@ -4,6 +4,7 @@
 #include <vector>
 #include "../entities/player.h"
 #include "../entities/entity.h"
+#include "../entities/item.h"
 
 using namespace std;
 
@@ -13,6 +14,7 @@ private:
     Player* player;
     vector<Entity*> entities; // Lista polimorfica que guarda enemys y obstacles
     unsigned short score;
+    std::vector<Item*> items;
 
 public:
     Game();
@@ -28,6 +30,7 @@ public:
     // Getters
     Player* getPlayer() const { return player; }
     unsigned short getScore() const { return score; }
+    const std::vector<Item*>& getItems() const { return items; }
 };
 
 #endif // GAME_H

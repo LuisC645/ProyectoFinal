@@ -1,101 +1,93 @@
 #include "player.h"
 #include <QDebug>
 
-Player::Player() : Entity()
+Player::Player()
 {
-    lives = 5;
-    invulnerable = false;
+    position = QVector2D(100.0f, 400.0f); // Posición inicial en el río
+    velocity = QVector2D(300.0f, 0.0f);   // Velocidad inicial estándar
 
-    startY = 400.0f;
-    position = QVector2D(0.0f, startY);
-    velocity = QVector2D(300.0f, 0.0f);
-
-    v0y = -850.0f;
-    baseGravity = 2500.0f;
-    gravity = baseGravity;
-    timeJumping = 0.0f;
     isJumping = false;
-
     isGlutton = false;
-    isScared = false;
-    itemsCollected = 0;
-}
+    fruitCount = 0;
+    lives = 3;
 
-Player::~Player() {}
+    isStunned = false;
+    stunTimer = 0.0f;
+}
 
 void Player::jump()
 {
+    // Permite saltar si esta en elsuelo
     if (!isJumping) {
+        velocity.setY(-550.0f); // Impulso vertical del salto
         isJumping = true;
-        timeJumping = 0.0f; // Reiniciamos t del tiro parabólico
+        qDebug() << "¡Crash saltó!";
     }
 }
 
-void Player::collectItem()
+void Player::takeDamage()
 {
-    itemsCollected++;
-    // Si recoge 5 items, se vuelve pesado
-    if (itemsCollected >= 5 && !isGlutton) {
-        isGlutton = true;
-        gravity = baseGravity * 1.5f;
-    }
-}
+    lives--;
+    qDebug() << "Colision --- Vidas:" << lives;
 
-void Player::checkScaredStatus(float enemyX, float enemyY)
-{
-    // Enemigo está a menos de 200px, asustado
-    float dist = position.distanceToPoint(QVector2D(enemyX, enemyY));
-    isScared = (dist < 200.0f);
-}
+    // Activamos el estado de aturdimiento y su temporizador
+    isStunned = true;
+    stunTimer = 1.5f; // Duración del freno en s
 
-void Player::applyPhysics(float dt)
-{
-    // 1. Movimiento rectilíneo horizontal
-    float speedMultiplier = isScared ? 1.5f : 1.0f;
-    float newX = position.x() + (velocity.x() * speedMultiplier * dt);
-
-    if (newX < 0.0f) {
-        newX = 0.0f;
-    }
-    else if (newX > 4960.0f) { // 5000 - 40px (ancho del jugador)
-        newX = 4960.0f;
-    }
-
-    position.setX(newX);
-    // Fisica salto
-    if (isJumping) {
-        timeJumping += dt;
-
-        // y = y0 + v0*t + 0.5*g*t^2
-        float currentY = startY + (v0y * timeJumping) + (0.5f * gravity * timeJumping * timeJumping);
-        position.setY(currentY);
-
-        // Colision con el piso
-        if (position.y() >= startY) {
-            position.setY(startY);
-            isJumping = false;
-        }
+    if (lives <= 0) {
+        qDebug() << "¡GAME OVER!";
     }
 }
 
 void Player::update(float dt)
 {
-    if (!active) return;
+    // Stuned
+    if (isStunned) {
+        stunTimer -= dt;
+        if (stunTimer <= 0.0f) {
+            isStunned = false;
+            qDebug() << "Freno, ya acabo";
+        }
+    }
 
-    applyPhysics(dt);
+    float targetSpeedX = 300.0f; // Velocidad base del juego
 
-    // position += velocity * dt;
+    if (isGlutton) {
+        targetSpeedX *= 0.7f;    // Si pesado va un 30% más lento (210)
+    }
 
-    qDebug() << "Crash Position -> X:" << position.x() << " Y:" << position.y();
+    if (isStunned) {
+        targetSpeedX = 80.0f;    // Si esta aturdido, va 80% mas lento (80)
+    }
+
+    velocity.setX(targetSpeedX); // Se aplica limpiamente en este frame
+
+    // Fisicas
+    float gravity = isGlutton ? 2000.0f : 1500.0f;
+
+    if (position.y() < 400.0f || velocity.y() < 0.0f) {
+        // Esta en el aire
+        velocity.setY(velocity.y() + gravity * dt);
+        isJumping = true;
+    } else {
+        // Esta tocando el suelo (Río)
+        velocity.setY(0.0f);
+        position.setY(400.0f);
+        isJumping = false; // Quitar estado de salto
+    }
+
+    position += velocity * dt;
 }
 
-void Player::onCollision(Entity* e)
+void Player::collectItem()
 {
-    // falta
+    if (isGlutton) return;
+
+    fruitCount++;
+    if (fruitCount >= 5) {
+        isGlutton = true;
+        qDebug() << "¡Crash ahora es GLUTTON!";
+    }
 }
 
-void Player::input()
-{
-    // leer teclas
-}
-
+void Player::onCollision(Entity* e) {}
