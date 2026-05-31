@@ -3,31 +3,29 @@
 
 #include "entity.h"
 #include <QString>
+#include <QVector2D>
 
-class Item : public Entity
-{
+class Item : public Entity {
 private:
-
-    QString type;     // Puede ser "fruit" o "box"
-    bool isCollected; // Para saber si Crash ya la agarró y no volver a dibujarla
+    QString type;
     float width;
     float height;
+    bool isCollected;
 
 public:
+    Item(QString type, QVector2D position, float width, float height);
+    virtual ~Item() override = default;
 
-    Item(float x, float y, QString itemType);
+    virtual void update(float dt) override;
+    virtual void onCollision(Entity* other) override;
 
-    void update(float dt) override;
-    void onCollision(Entity* e) override;
-
-    // Getters y Setters necesarios
+    // === GETTERS Y SETTERS ===
     QString getType() const { return type; }
-    bool getIsCollected() const { return isCollected; }
-    void setCollected(bool status) { isCollected = status; }
-
     float getWidth() const { return width; }
     float getHeight() const { return height; }
 
+    bool getIsCollected() const { return isCollected; }
+    void setIsCollected(bool collected) { isCollected = collected; }
 };
 
 #endif // ITEM_H

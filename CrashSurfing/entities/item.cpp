@@ -1,24 +1,32 @@
 #include "item.h"
 
-Item::Item(float x, float y, QString itemType)
+Item::Item(QString type, QVector2D position, float width, float height)
 {
-    position = QVector2D(x, y);
-    velocity = QVector2D(0.0f, 0.0f); // Las frutas se quedan flotando estáticas en el río
-    type = itemType;
-    isCollected = false;
+    this->type = type;
+    this->width = width;
+    this->height = height;
+    this->isCollected = false;
 
-    // Dimensiones de la caja de colisión (Hitbox)
-    width = 30.0f;
-    height = 30.0f;
+    // Variables heredadas de Entity
+    this->position = position;
+    this->active = true;
 }
 
 void Item::update(float dt)
 {
-    // Las frutas no se mueven solas, así que no necesitan física por ahora
+    Q_UNUSED(dt);
+
+    // ESTATICOS
+
 }
 
-void Item::onCollision(Entity* e)
+void Item::onCollision(Entity* other)
 {
-    // Cuando colisiona con algo, se marca como recolectada
-    isCollected = true;
+    Q_UNUSED(other);
+
+    // Cuando Crash choca con el item, lo marcamos como recogido y lo desactivamos
+    if (!isCollected) {
+        isCollected = true;
+        this->active = false;
+    }
 }

@@ -2,19 +2,21 @@
 #define GAME_H
 
 #include <vector>
-#include "../entities/player.h"
-#include "../entities/entity.h"
-#include "../entities/item.h"
 
-using namespace std;
+// Forward declarations para evitar dependencias circulares
+class Entity;
+class Player;
+class Item;
 
-class Game
-{
+class Game {
 private:
-    Player* player;
-    vector<Entity*> entities; // Lista polimorfica que guarda enemys y obstacles
-    unsigned short score;
+    Entity* player;
+    std::vector<Entity*> entities;
     std::vector<Item*> items;
+
+    int score;
+    bool isGameOver;
+    bool isLevelComplete;
 
 public:
     Game();
@@ -22,15 +24,20 @@ public:
 
     void update(float dt);
     void addEntity(Entity* e);
+    void loadLevel();
+    void checkCollisions();
+    void reset();
 
-    // olision
-    void loadLevel();         // colocar obj
-    void checkCollisions();   // colision
-
-    // Getters
-    Player* getPlayer() const { return player; }
-    unsigned short getScore() const { return score; }
+    // === GETTERS Y SETTERS ===
+    Entity* getPlayer() const { return player; }
+    const std::vector<Entity*>& getEntities() const { return entities; }
     const std::vector<Item*>& getItems() const { return items; }
+
+    bool getIsGameOver() const { return isGameOver; }
+    bool getIsLevelComplete() const { return isLevelComplete; }
+    void setLevelComplete(bool complete) { isLevelComplete = complete; }
+
+    int getScore() const { return score; }
 };
 
 #endif // GAME_H

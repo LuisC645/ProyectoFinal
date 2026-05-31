@@ -3,7 +3,6 @@
 
 #include "entity.h"
 
-// Falta por definir (pero si no no compila xd)
 class Agent;
 
 class Enemy : public Entity
@@ -12,7 +11,6 @@ private:
 
     // Puntero al agente
     Agent* agent;
-    // Optimización de memoria
     unsigned short health;
 
 public:

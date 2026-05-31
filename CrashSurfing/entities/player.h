@@ -4,34 +4,43 @@
 #include "entity.h"
 #include <QVector2D>
 
-class Player : public Entity
-{
+class Player : public Entity {
 private:
-    bool isJumping;
-    bool isGlutton;
-    int fruitCount;
-    int lives;
+    float speed;
+    float jumpForce;
+    float gravity;
+    float floorY;
 
-    // Estados de control
-    bool isStunned;
-    float stunTimer;
+    int lives;
+    int collectedFruits;
+    bool isGrounded;
+
+    // Invencibilidad
+    bool isInvincible;
+    float invincibilityTimer;
+    float invincibilityDuration;
+
+    bool isGlutton;
+    int fruitsNeededForNextRush;
 
 public:
     Player();
+    virtual ~Player() override = default;
 
-    void update(float dt) override;
-    void onCollision(Entity* e) override;
+    virtual void update(float dt) override;
+    virtual void onCollision(Entity* other) override;
 
     void jump();
-    void collectItem();
     void takeDamage();
+    void startInvincibility();
+    void collectItem();
+    void reset();
 
-    // Getters básicos
-    bool getIsJumping() const { return isJumping; }
+    // Getters
     int getLives() const { return lives; }
-
-    void setLives(int newLives) { lives = newLives; }
+    int getCollectedFruits() const { return collectedFruits; }
     bool getIsGlutton() const { return isGlutton; }
+    bool getIsInvincible() const { return isInvincible; }
 };
 
 #endif // PLAYER_H
