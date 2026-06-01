@@ -30,19 +30,24 @@ void Player::update(float dt)
         }
     }
 
-    // 2. SISTEMA DE ESCALONES
-    int tier = collectedFruits / 5;
-    isGlutton = (tier > 0);
+    /// 2. SISTEMA DE ESCALONES (Fijado estrictamente a un máximo de 15 wumpas)
+    int effectiveFruits = collectedFruits;
+    if (effectiveFruits > 10) {
+        effectiveFruits = 10; // Cap máximo a 15 frutas
+    }
+
+    int tier = effectiveFruits / 5; // Tier máximo será 3 (15 / 5)
+    isGlutton = (collectedFruits >= 5); // El glotón se activa desde las 5 frutas reales
 
     // 3. LOGICA DE VELOCIDAD ACUMULATIVA
+    // Con 15 frutas (tier 3), la velocidad máxima exacta será: 200 + (3 * 60) = 380.0f
     float targetSpeed = 200.0f + (tier * 60.0f);
-    if (targetSpeed > 600.0f) targetSpeed = 600.0f;
 
-    // 4. LOGICA DE GRAVEDAD ACUMULATIVA (Caida mas pesada)
+    // 4. LOGICA DE GRAVEDAD ACUMULATIVA
     float currentGravity = 980.0f + (tier * 80.0f);
     if (currentGravity > 1500.0f) currentGravity = 1500.0f;
 
-    // Aceleracion y recuperacion suave
+    // Aceleración suave hacia la velocidad objetivo
     if (speed < targetSpeed) {
         speed += 250.0f * dt;
         if (speed > targetSpeed) speed = targetSpeed;
@@ -114,36 +119,43 @@ void Player::onCollision(Entity* other)
 {
     if (!other->isActive()) return;
 
-    // === COLISIÓN CON OBSTÁCULOS (Sierras / Drones) ===
+    // === 1. SI ES UN OBSTÁCULO (Sierra, Drone, Tronco) ===
     Obstacle* obs = dynamic_cast<Obstacle*>(other);
     if (obs) {
-        QString type = obs->getType();
-        if (type == "saw" || type == "floating") {
+        QString type = obs->getType().toLower();
+
+        // Los obstáculos SIEMPRE hacen daño. No les importa si eres Glotón.
+        if (type == "saw" || type == "floating" || type == "log" || type == "tronco") {
             if (!isInvincible) {
                 takeDamage();
             } else {
-                // Si chocas pero no pierdes vida, te dirá esto en rojo:
                 qDebug() << "Tocaste un obstáculo, pero estabas Invencible.";
             }
+
+            // Como mencionas que el tronco desaparece al chocar,
+            // lo desactivamos aquí manualmente después de aplicar el daño:
+            obs->setActive(false);
         }
         return;
     }
 
-    // === COLISIÓN CON OBJETOS (Frutas / Cajas) ===
+    // === 2. SI ES UN OBJETO (Caja, Fruta o Tronco por si se creó como Item) ===
     Item* item = dynamic_cast<Item*>(other);
     if (item && !item->getIsCollected()) {
-        QString type = item->getType();
+        QString type = item->getType().toLower();
 
+        // LÓGICA EXCLUSIVA DE LA CAJA
         if (type == "box") {
             if (isGlutton) {
                 item->setActive(false);
-                qDebug() << "Tienes más de 5 frutas (Glotón activo).";
+                qDebug() << "Tienes más de 5 frutas (Glotón activo). Rompes la caja a salvo.";
             } else {
                 if (!isInvincible) {
                     takeDamage();
                 }
             }
         }
+        // LÓGICA EXCLUSIVA DE LA FRUTA
         else if (type == "fruit") {
             item->setActive(false);
             collectItem();
@@ -152,6 +164,14 @@ void Player::onCollision(Entity* other)
                 fruitsNeededForNextRush += 5;
                 qDebug() << "Mas velocidad." << fruitsNeededForNextRush;
             }
+        }
+        // ¡CANDADO DE SEGURIDAD! Si por error creaste el tronco como "Item":
+        // Evitamos que entre a la lógica de la caja y lo obligamos a hacer daño.
+        else if (type == "log" || type == "tronco") {
+            if (!isInvincible) {
+                takeDamage();
+            }
+            item->setActive(false); // Desaparece tras hacerte daño
         }
     }
 }

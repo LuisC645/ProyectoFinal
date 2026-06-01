@@ -3,21 +3,20 @@
 
 #include <vector>
 
-// Forward declarations para evitar dependencias circulares
+// Declaraciones anticipadas (Forward declarations)
 class Entity;
 class Player;
 class Item;
 
+// ✨ 1. NUESTRO ENUM DE ESTADOS
+enum class GameStatus {
+    MENU,
+    PLAYING,
+    GAME_OVER,
+    LEVEL_COMPLETE
+};
+
 class Game {
-private:
-    Entity* player;
-    std::vector<Entity*> entities;
-    std::vector<Item*> items;
-
-    int score;
-    bool isGameOver;
-    bool isLevelComplete;
-
 public:
     Game();
     ~Game();
@@ -28,16 +27,25 @@ public:
     void checkCollisions();
     void reset();
 
-    // === GETTERS Y SETTERS ===
+    // ✨ 2. NUEVOS GETTERS Y SETTERS PARA EL ESTADO
+    GameStatus getStatus() const { return status; }
+    void setStatus(GameStatus newStatus) { status = newStatus; }
+
+    int getScore() const { return score; }
+
     Entity* getPlayer() const { return player; }
     const std::vector<Entity*>& getEntities() const { return entities; }
     const std::vector<Item*>& getItems() const { return items; }
 
-    bool getIsGameOver() const { return isGameOver; }
-    bool getIsLevelComplete() const { return isLevelComplete; }
-    void setLevelComplete(bool complete) { isLevelComplete = complete; }
+private:
+    Entity* player;
+    std::vector<Entity*> entities;
+    std::vector<Item*> items;
 
-    int getScore() const { return score; }
+    int score;
+
+    // ✨ 3. VARIABLE CENTRAL DE ESTADO (Reemplaza a isGameOver e isLevelComplete)
+    GameStatus status;
 };
 
 #endif // GAME_H

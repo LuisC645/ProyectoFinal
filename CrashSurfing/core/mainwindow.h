@@ -26,6 +26,9 @@ private:
     std::vector<QGraphicsItem*> visualEntities;
     std::vector<QGraphicsItem*> visualItems;
 
+    QGraphicsTextItem* menuTitleText;  // Textos del menú de inicio
+    QGraphicsTextItem* menuInfoText;
+
     void createVisualEntities();
 
 protected:

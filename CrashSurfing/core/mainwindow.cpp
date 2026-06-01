@@ -17,7 +17,9 @@ MainWindow::MainWindow(QWidget *parent)
     game = new Game();
     game->loadLevel();
 
-    gameOverText = nullptr; // Inicializacion segura
+    gameOverText = nullptr;
+    menuTitleText = nullptr;
+    menuInfoText = nullptr;
 
     // 2. CONFIGURAR ESCENA Y VISTA
     scene = new QGraphicsScene(0, 0, 30000, 600, this);
@@ -32,27 +34,46 @@ MainWindow::MainWindow(QWidget *parent)
     setFixedSize(1600, 600);
     setWindowTitle("Crash Surfing - Procedural Engine v1.0");
 
-    // 3. CREAR JUGADOR Y HUD
+    // 3. CREAR JUGADOR
     visualPlayer = scene->addRect(0, 0, 40, 40, QPen(Qt::NoPen), QBrush(Qt::blue));
 
+    float startX = 0.0f;
+    float startY = 0.0f;
     if (game != nullptr && game->getPlayer() != nullptr && visualPlayer != nullptr) {
-        float startX = game->getPlayer()->getPosition().x();
-        float startY = game->getPlayer()->getPosition().y();
+        startX = game->getPlayer()->getPosition().x();
+        startY = game->getPlayer()->getPosition().y();
         visualPlayer->setPos(startX, startY);
     }
 
-    hudText = scene->addText("Vidas: 3  |  Frutas: 0");
+    // 4. CREAR ELEMENTOS DE LA INTERFAZ (GUI)
+    // HUD de juego
+    hudText = scene->addText("VIDAS: 3  |  WUMPAS: 0  |  SCORE: 0");
     hudText->setDefaultTextColor(Qt::white);
     hudText->setFont(QFont("Arial", 16, QFont::Bold));
     hudText->setZValue(10);
+    hudText->setVisible(false); // Oculto al inicio (estamos en menú)
 
-    // 4. MATERIALIZAR EL NIVEL
+    // Pantalla de Inicio: Título Principal
+    menuTitleText = scene->addText("CRASH SURFING");
+    menuTitleText->setDefaultTextColor(QColor(255, 102, 0)); // Color Naranja Crash clásico
+    menuTitleText->setFont(QFont("Impact", 55, QFont::Bold));
+    menuTitleText->setZValue(11);
+    menuTitleText->setPos(startX + 180, 160);
+
+    // Pantalla de Inicio: Instrucciones
+    menuInfoText = scene->addText("PRESIONA 'ENTER' PARA COMENZAR");
+    menuInfoText->setDefaultTextColor(Qt::white);
+    menuInfoText->setFont(QFont("Arial", 16, QFont::Bold));
+    menuInfoText->setZValue(11);
+    menuInfoText->setPos(startX + 210, 270);
+
+    // 5. MATERIALIZAR EL NIVEL
     createVisualEntities();
 
-    // 5. INICIAR EL BUCLE DEL JUEGO
+    // 6. INICIAR EL BUCLE DEL JUEGO (Nunca se detiene, cambia por estados)
     timer = new QTimer(this);
     connect(timer, &QTimer::timeout, this, &MainWindow::updateGameLoop);
-    timer->start(16); // 60 FPS
+    timer->start(16); // ~60 FPS
 }
 
 MainWindow::~MainWindow()
@@ -64,38 +85,48 @@ void MainWindow::keyPressEvent(QKeyEvent *event)
 {
     if (!game) return;
 
-    // REINICIAR JUEGO (GAME OVER)
-    if (game->getIsGameOver()) {
+    GameStatus currentStatus = game->getStatus();
+
+    // 🕹️ ACCIÓN EN ESTADO: MENU
+    if (currentStatus == GameStatus::MENU) {
+        if (event->key() == Qt::Key_Return || event->key() == Qt::Key_Enter) {
+            // Iniciamos la carrera
+            game->setStatus(GameStatus::PLAYING);
+
+            // Transición limpia de visibilidad de pantallas
+            if (menuTitleText) menuTitleText->setVisible(false);
+            if (menuInfoText) menuInfoText->setVisible(false);
+            if (hudText) hudText->setVisible(true);
+        }
+        return;
+    }
+
+    // 💀 ACCIÓN EN ESTADO: GAME OVER / VICTORIA (REINICIAR)
+    if (currentStatus == GameStatus::GAME_OVER || currentStatus == GameStatus::LEVEL_COMPLETE) {
         if (event->key() == Qt::Key_R) {
 
-            // 1. Borramos el texto de Game Over de la escena
+            // 1. Borramos el texto de fin de juego
             if (gameOverText) {
                 scene->removeItem(gameOverText);
                 delete gameOverText;
                 gameOverText = nullptr;
             }
 
-            // 2. Limpiamos gráficos dinámicos viejos de la escena de Qt
+            // 2. Limpiamos gráficos dinámicos viejos
             for (QGraphicsItem* visualEnt : visualEntities) {
-                if (visualEnt) {
-                    scene->removeItem(visualEnt);
-                    delete visualEnt;
-                }
+                if (visualEnt) { scene->removeItem(visualEnt); delete visualEnt; }
             }
             for (QGraphicsItem* visualIt : visualItems) {
-                if (visualIt) {
-                    scene->removeItem(visualIt);
-                    delete visualIt;
-                }
+                if (visualIt) { scene->removeItem(visualIt); delete visualIt; }
             }
 
-            // 3. Reiniciamos la lógica del backend
+            // 3. Reiniciamos lógica (el backend regresará automáticamente a GameStatus::MENU)
             game->reset();
 
-            // 4. Volvemos a leer el generador y creamos los nuevos gráficos
+            // 4. Regeneramos el mapa procedural
             createVisualEntities();
 
-            // 5. Revivimos el render del jugador
+            // 5. Reposicionamos al jugador de forma segura
             if (visualPlayer) {
                 visualPlayer->setVisible(true);
                 if (game->getPlayer()) {
@@ -103,17 +134,23 @@ void MainWindow::keyPressEvent(QKeyEvent *event)
                 }
             }
 
-            timer->start(16);
+            // 6. Mostramos el menú de inicio nuevamente en la nueva posición inicial
+            float playerX = game->getPlayer()->getPosition().x();
+            if (menuTitleText) { menuTitleText->setPos(playerX + 180, 160); menuTitleText->setVisible(true); }
+            if (menuInfoText) { menuInfoText->setPos(playerX + 210, 270); menuInfoText->setVisible(true); }
+            if (hudText) hudText->setVisible(false);
         }
         return;
     }
 
-    // === CONTROLES NORMALES ===
-    Player* player = dynamic_cast<Player*>(game->getPlayer());
-    if (!player) return;
+    // 🏃 CONTROLES EN ESTADO: PLAYING (NORMAL)
+    if (currentStatus == GameStatus::PLAYING) {
+        Player* player = dynamic_cast<Player*>(game->getPlayer());
+        if (!player) return;
 
-    if (event->key() == Qt::Key_Space || event->key() == Qt::Key_Up) {
-        player->jump();
+        if (event->key() == Qt::Key_Space || event->key() == Qt::Key_Up) {
+            player->jump();
+        }
     }
 }
 
@@ -124,107 +161,107 @@ void MainWindow::keyReleaseEvent(QKeyEvent *event)
 
 void MainWindow::updateGameLoop()
 {
-
     if (!game || !game->getPlayer()) return;
 
-    // 1. ACTUALIZAR LÓGICA
+    Player* p = dynamic_cast<Player*>(game->getPlayer());
+    if (!p) return;
+
+    GameStatus currentStatus = game->getStatus();
+
+    // 1. ACTUALIZAR EL BACKEND (Él sabe si debe congelarse o no según su estado interno)
     game->update(0.016f);
 
-    Player* p = dynamic_cast<Player*>(game->getPlayer());
-    if (!p) return; // Aseguramos que 'p' existe desde el principio
+    // 2. FORCE-SINCRONIZAR CONDICIÓN DE VICTORIA DEL FRONTEND AL BACKEND
+    if (currentStatus == GameStatus::PLAYING && p->getCollectedFruits() >= 30) {
+        game->setStatus(GameStatus::LEVEL_COMPLETE);
+        currentStatus = GameStatus::LEVEL_COMPLETE;
+    }
 
-    // 2A. COMPROBAR VICTORIA (Límite de 50 frutas)
-    if (p->getCollectedFruits() >= 30) {
-        timer->stop();
+    // ==========================================
+    // RENDERS Y ENTRADAS SEGÚN EL ESTADO VISUAL
+    // ==========================================
 
+    // 🎪 PANTALLA: MENÚ DE INICIO
+    if (currentStatus == GameStatus::MENU) {
+        view->centerOn(p->getPosition().x() + 400, 300); // Cámara fija mirando al jugador en la salida
+        return; // Detiene el procesamiento gráfico dinámico del loop
+    }
+
+    // 🏆 PANTALLA: VICTORIA
+    if (currentStatus == GameStatus::LEVEL_COMPLETE) {
         if (!gameOverText) {
             gameOverText = new QGraphicsTextItem("¡NIVEL COMPLETADO!\nPresiona 'R' para jugar de nuevo");
             gameOverText->setDefaultTextColor(Qt::green);
-            QFont font = gameOverText->font();
-            font.setPointSize(30);
-            font.setBold(true);
-            gameOverText->setFont(font);
-            scene->addItem(gameOverText);
+            QFont font = gameOverText->font(); font.setPointSize(30); font.setBold(true);
+            gameOverText->setFont(font); scene->addItem(gameOverText);
         }
-
-        gameOverText->setPos(p->getPosition().x() - 200, 150);
+        gameOverText->setPos(p->getPosition().x() + 150, 180);
         gameOverText->setVisible(true);
         return;
     }
 
-    // 2B. COMPROBAR GAME OVER (Derrota normal)
-    if (game->getIsGameOver()) {
-        timer->stop();
-
+    // 💀 PANTALLA: GAME OVER
+    if (currentStatus == GameStatus::GAME_OVER) {
         if (!gameOverText) {
             gameOverText = new QGraphicsTextItem("GAME OVER\nPresiona 'R' para reiniciar");
             gameOverText->setDefaultTextColor(Qt::red);
-            QFont font = gameOverText->font();
-            font.setPointSize(30);
-            font.setBold(true);
-            gameOverText->setFont(font);
-            scene->addItem(gameOverText);
+            QFont font = gameOverText->font(); font.setPointSize(30); font.setBold(true);
+            gameOverText->setFont(font); scene->addItem(gameOverText);
         }
-
-        gameOverText->setPos(p->getPosition().x() - 150, 150);
+        gameOverText->setPos(p->getPosition().x() + 200, 180);
         gameOverText->setVisible(true);
         return;
     }
 
-    // 3. CONTINUAR DIBUJANDO EL JUEGO NORMALMENTE
+    // 🏃 RUNTIME: ACTUALIZACIÓN GRÁFICA EN VIVO (PLAYING)
     float newX = p->getPosition().x();
     float newY = p->getPosition().y();
 
+    // Actualización del HUD persistente en pantalla con seguimiento de cámara
+    hudText->setPlainText(QString("VIDAS: %1   |   WUMPAS: %2   |   SCORE: %3")
+                              .arg(p->getLives())
+                              .arg(p->getCollectedFruits())
+                              .arg(game->getScore()));
 
-    if (p) {
-        // Actualización del HUD persistente en pantalla
-        hudText->setPlainText(QString("VIDAS: %1   |   WUMPAS: %2   |   SCORE: %3")
-                                  .arg(p->getLives())
-                                  .arg(p->getCollectedFruits())
-                                  .arg(game->getScore()));
+    float cameraLeftEdge = newX - 350.0f;
+    hudText->setPos(cameraLeftEdge, 30.0f);
 
-        float cameraLeftEdge = newX - 350.0f;
-        hudText->setPos(cameraLeftEdge, 30.0f);
-
-        QGraphicsRectItem* rectPlayer = static_cast<QGraphicsRectItem*>(visualPlayer);
-        if (rectPlayer) {
-
-            rectPlayer->setRect(0, 0, 40, 40);
-
-            if (p->getIsGlutton()) {
-                rectPlayer->setBrush(QBrush(QColor(20, 20, 80)));
-            } else {
-                rectPlayer->setBrush(QBrush(Qt::blue));
-            }
-        }
-
-        // Efecto visual de parpadeo por invencibilidad temporal
-        if (p->getIsInvincible()) {
-            static int frameCounter = 0;
-            frameCounter++;
-            if (frameCounter % 6 == 0) {
-                visualPlayer->setVisible(!visualPlayer->isVisible());
-            }
+    // Ajustar el tamaño y render del jugador (Modo Glotón)
+    QGraphicsRectItem* rectPlayer = static_cast<QGraphicsRectItem*>(visualPlayer);
+    if (rectPlayer) {
+        rectPlayer->setRect(0, 0, 40, 40);
+        if (p->getIsGlutton()) {
+            rectPlayer->setBrush(QBrush(QColor(20, 20, 80))); // Color azul pesado
         } else {
-            if (visualPlayer) visualPlayer->setVisible(true);
+            rectPlayer->setBrush(QBrush(Qt::blue));
         }
     }
 
-    // Sincronizar Frutas y Cajas Visuales con el Backend
+    // Efecto visual de parpadeo por invencibilidad temporal
+    if (p->getIsInvincible()) {
+        static int frameCounter = 0;
+        frameCounter++;
+        if (frameCounter % 6 == 0) {
+            visualPlayer->setVisible(!visualPlayer->isVisible());
+        }
+    } else {
+        if (visualPlayer) visualPlayer->setVisible(true);
+    }
+
+    // Sincronizar ítems (Cajas/Frutas)
     const auto& backendItems = game->getItems();
     for (size_t i = 0; i < backendItems.size() && i < visualItems.size(); ++i) {
         if (visualItems[i] != nullptr) {
             if (backendItems[i]->getIsCollected() || !backendItems[i]->isActive()) {
                 visualItems[i]->setVisible(false);
             } else {
-                // Sincroniza la levitación senoidal del backend si la tiene
                 visualItems[i]->setPos(backendItems[i]->getPosition().x(), backendItems[i]->getPosition().y());
                 visualItems[i]->setVisible(true);
             }
         }
     }
 
-    // Sincronizar Sierras y Drones Visuales con el Backend
+    // Sincronizar obstáculos (Sierras/Drones)
     const auto& backendEntities = game->getEntities();
     for (size_t i = 0; i < backendEntities.size() && i < visualEntities.size(); ++i) {
         if (visualEntities[i] != nullptr) {
@@ -237,7 +274,7 @@ void MainWindow::updateGameLoop()
         }
     }
 
-    // Desplazar Jugador y Cámara Cinematográfica (Estilo Crash)
+    // Desplazamiento de la cámara cinematográfica
     if (visualPlayer) {
         visualPlayer->setPos(newX, newY);
     }
@@ -246,11 +283,9 @@ void MainWindow::updateGameLoop()
 
 void MainWindow::createVisualEntities()
 {
-    // 1. Limpieza total de listas de renderizado
     visualEntities.clear();
     visualItems.clear();
 
-    // 2. POBLAR LOS OBSTACULOS VISUALES
     const auto& backendEntities = game->getEntities();
     for (Entity* e : backendEntities) {
         Obstacle* obs = dynamic_cast<Obstacle*>(e);
@@ -259,31 +294,24 @@ void MainWindow::createVisualEntities()
         if (obs) {
             if (obs->getType() == "saw") {
                 QGraphicsEllipseItem* saw = new QGraphicsEllipseItem(0, 0, 40, 40);
-                saw->setBrush(QBrush(Qt::darkGray));
-                saw->setPen(QPen(Qt::NoPen));
+                saw->setBrush(QBrush(Qt::darkGray)); saw->setPen(QPen(Qt::NoPen));
                 visualEntity = saw;
             }
             else if (obs->getType() == "floating") {
                 QGraphicsEllipseItem* fl = new QGraphicsEllipseItem(0, 0, 35, 35);
-                fl->setBrush(QBrush(Qt::magenta));
-                fl->setPen(QPen(Qt::NoPen));
+                fl->setBrush(QBrush(Qt::magenta)); fl->setPen(QPen(Qt::NoPen));
                 visualEntity = fl;
             }
             else if (obs->getType() == "log") {
-                QGraphicsRectItem* logItem = new QGraphicsRectItem(0, 0, 80, 30);
-
-                logItem->setBrush(QBrush(QColor(115, 66, 34)));
-
-                logItem->setPen(QPen(Qt::NoPen));
+                QGraphicsRectItem* logItem = new QGraphicsRectItem(0, 0, 40, 40);
+                logItem->setBrush(QBrush(QColor(115, 66, 34))); logItem->setPen(QPen(Qt::NoPen));
                 visualEntity = logItem;
             }
         }
 
         if (!visualEntity) {
             QGraphicsRectItem* fallback = new QGraphicsRectItem(0, 0, 40, 40);
-            // Si algo no tiene tipo definido, aparecerá blanco chillón para que te des cuenta rápido.
-            fallback->setBrush(QBrush(Qt::white));
-            fallback->setPen(QPen(Qt::NoPen));
+            fallback->setBrush(QBrush(Qt::white)); fallback->setPen(QPen(Qt::NoPen));
             visualEntity = fallback;
         }
 
@@ -292,17 +320,13 @@ void MainWindow::createVisualEntities()
         visualEntities.push_back(visualEntity);
     }
 
-    // 3. POBLAR LOS ITEMS VISUALES (Frutas Wumpa y Cajas de madera)
     const auto& backendItems = game->getItems();
     for (Item* item : backendItems) {
         if (!item) continue;
 
         QGraphicsRectItem* visualItem = new QGraphicsRectItem(0, 0, item->getWidth(), item->getHeight());
-
         if (item->getType() == "fruit") {
-            visualItem->setBrush(QBrush(QColor(255, 128, 0))); // Color Naranja Fruta Wumpa
-        } else if (item->getType() == "box") {
-            visualItem->setBrush(QBrush(QColor(139, 69, 19)));  // Color Marrón Caja
+            visualItem->setBrush(QBrush(QColor(255, 128, 0)));
         }
 
         visualItem->setPen(QPen(Qt::NoPen));

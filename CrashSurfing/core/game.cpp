@@ -12,8 +12,9 @@ Game::Game()
 {
     player = new Player();
     score = 0;
-    isGameOver = false;
-    isLevelComplete = false;
+
+    // ✨ Iniciamos el juego en modo MENU
+    status = GameStatus::MENU;
 }
 
 Game::~Game()
@@ -27,78 +28,66 @@ Game::~Game()
 
 void Game::update(float dt)
 {
-    Player* p = dynamic_cast<Player*>(player);
+    // 1. Si no estamos jugando, no hacemos nada
+    if (status != GameStatus::PLAYING) return;
 
-    if (p && p->getLives() <= 0) {
-        isGameOver = true;
-        return;
-    }
+    // CAP DE SEGURIDAD PARA EL LAG: Si el juego se congela un momento,
+    // evitamos que el 'dt' sea gigantesco y rompa las físicas.
+    if (dt > 0.1f) dt = 0.1f;
 
-    if (p && p->getPosition().x() >= 25000.0f) {
-        isLevelComplete = true;
-        return;
-    }
+    // === EL TRUCO DE ALTA VELOCIDAD: SUB-STEPPING ===
+    // En lugar de mover a Crash un tramo grande de golpe, dividimos el tiempo
+    // de este fotograma en 4 "mini-pasos".
+    const int SUB_STEPS = 4;
+    float subDt = dt / SUB_STEPS;
 
-    if (player && !isGameOver && !isLevelComplete) {
-        player->update(dt);
+    for (int paso = 0; paso < SUB_STEPS; ++paso)
+    {
+        // A) Mover al jugador un mini-tramo
+        if (player) {
+            player->update(subDt);
+        }
 
+        // B) Mover los obstáculos y objetos un mini-tramo
         for (Entity* e : entities) {
-            if (e->isActive()) e->update(dt);
+            if (e->isActive()) e->update(subDt);
         }
         for (Item* i : items) {
-            if (!i->getIsCollected()) i->update(dt);
+            if (!i->getIsCollected()) i->update(subDt);
         }
 
-        float px = player->getPosition().x();
-        float py = player->getPosition().y();
+        // C) ¡REVISAR COLISIONES EN CADA MINI-PASO!
+        // Al revisar las colisiones 4 veces por frame, Crash nunca avanzará más de
+        // 2-3 píxeles entre cada chequeo, haciendo imposible que atraviese nada.
+        checkCollisions();
 
-        // Ajustamos dinámicamente el tamaño de la caja de colisión si está Glotón
-        float pw = (p && p->getIsGlutton()) ? 55.0f : 40.0f;
-        float ph = (p && p->getIsGlutton()) ? 55.0f : 40.0f;
-
-        for (Item* item : items) {
-            if (!item->getIsCollected()) {
-                float ix = item->getPosition().x();
-                float iy = item->getPosition().y();
-                float iw = item->getWidth();
-                float ih = item->getHeight();
-
-                if (px < ix + iw && px + pw > ix &&
-                    py < iy + ih && py + ph > iy)
-                {
-                    if (p) {
-                        if (item->getType() == "fruit") {
-                            item->onCollision(player);
-                            p->collectItem();
-                            score += 10;
-                            qDebug() << "¡Fruta recogida! Puntuación:" << score;
-                        }
-                        else if (item->getType() == "box") {
-                            if (p->getIsGlutton()) {
-                                item->onCollision(player); // Devora la caja
-                                //p->resetGlutton();         // Pierde el estado glotón gastando sus frutas
-                                //score += 50;               // Premio de puntos
-                                p->startInvincibility();   // Breve ventana de seguridad
-                                qDebug() << "¡Crash Glotón devoró la caja sin sufrir daño! Puntos:" << score;
-                            }
-                            else if (!p->getIsInvincible()) {
-                                p->takeDamage();
-                                p->startInvincibility();
-                                qDebug() << "¡Daño por caja! Vidas restantes:" << p->getLives();
-                            }
-                        }
-                    }
-                }
+        // D) Verificar estados críticos del juego en cada sub-paso
+        Player* p = dynamic_cast<Player*>(player);
+        if (p) {
+            if (p->getLives() <= 0) {
+                status = GameStatus::GAME_OVER;
+                return; // Salimos inmediatamente si muere
+            }
+            if (p->getPosition().x() >= 25000.0f) {
+                status = GameStatus::LEVEL_COMPLETE;
+                return; // Salimos inmediatamente si gana
             }
         }
-
-        checkCollisions();
     }
 }
 
-void Game::addEntity(Entity* e)
+
+void Game::reset()
 {
-    if (e != nullptr) entities.push_back(e);
+    score = 0;
+
+    // ✨ Al reiniciar, volvemos a poner el juego en el menú
+    status = GameStatus::MENU;
+
+    Player* p = dynamic_cast<Player*>(player);
+    if (p) p->reset();
+
+    loadLevel();
 }
 
 void Game::loadLevel()
@@ -117,7 +106,9 @@ void Game::loadLevel()
     float currentX = 600.0f;
     float endX = 25000.0f;
 
-    float boxY = 350.0f;
+    // 🔥 DEFINIMOS EL SUELO AQUÍ 🔥
+    // Ajusta este número (por ejemplo 380.0f o 400.0f) según dónde camine Crash
+    float floorY = 380.0f;
 
     while (currentX < endX) {
         float spacing = 200.0f + (std::rand() % 150);
@@ -135,8 +126,9 @@ void Game::loadLevel()
             entities.push_back(new Obstacle("floating", QVector2D(currentX, 270.0f)));
         }
         else if (spawnChance < 55) {
-            items.push_back(new Item("box", QVector2D(currentX, boxY), 40, 40));
-        }
+            // Ahora restamos 40 a floorY para que el tronco de 40px de alto
+            // quede reposando exactamente sobre la línea del piso.
+            entities.push_back(new Obstacle("log", QVector2D(currentX, floorY - 30.0f)));        }
         else {
             float fruitHeight = 230.0f + (std::rand() % 136);
             items.push_back(new Item("fruit", QVector2D(currentX, fruitHeight), 25, 25));
@@ -150,46 +142,59 @@ void Game::checkCollisions()
 {
     if (!player || !player->isActive()) return;
 
-    Player* p = dynamic_cast<Player*>(player);
-    if (!p) return;
+    float pX = player->getPosition().x();
+    float pY = player->getPosition().y();
 
-    float px = player->getPosition().x();
-    float py = player->getPosition().y();
-    float pw = p->getIsGlutton() ? 55.0f : 40.0f;
-    float ph = p->getIsGlutton() ? 55.0f : 40.0f;
+    // Mantenemos la hitbox de Crash ligeramente ajustada (36x36)
+    // para que los saltos se sientan fluidos y justos en las esquinas.
+    float pW = 36.0f;
+    float pH = 36.0f;
 
-    for (Entity* e : entities) {
-        if (!e->isActive()) continue;
+    // === 1. REVISAR OBSTÁCULOS ===
+    for (Entity* ent : entities) {
+        if (!ent->isActive()) continue;
 
-        Obstacle* obs = dynamic_cast<Obstacle*>(e);
+        float eX = ent->getPosition().x();
+        float eY = ent->getPosition().y();
+
+        // Medida estándar para sierras, flotantes y ahora tus troncos de 40x40
+        float eW = 40.0f;
+        float eH = 40.0f;
+
+        Obstacle* obs = dynamic_cast<Obstacle*>(ent);
         if (obs) {
-            float ox = obs->getPosition().x();
-            float oy = obs->getPosition().y();
-
-            float ow = (obs->getType() == "log") ? 80.0f : 40.0f;
-            float oh = (obs->getType() == "log") ? 30.0f : 40.0f;
-
-            if (px < ox + ow && px + pw > ox &&
-                py < oy + oh && py + ph > oy)
-            {
-                if (!p->getIsInvincible()) {
-                    qDebug() << "¡Colisión con obstáculo en X:" << ox;
-                    p->takeDamage();
-                    p->startInvincibility();
-                }
-                obs->setActive(false);
-                obs->onCollision(player);
+            QString type = obs->getType().toLower();
+            if (type == "log" || type == "tronco") {
+                // 🎯 AJUSTE DE REGLA EN 40x40:
+                // Dejamos el ancho en 40, pero bajamos el alto matemático a 35.
+                // Esos 5 píxeles menos en el techo evitan que Crash colisione
+                // falsamente si su pie roza el borde superior al saltar a toda velocidad.
+                eW = 40.0f;
+                eH = 35.0f;
             }
         }
-    }
-}
 
-void Game::reset()
-{
-    isGameOver = false;
-    isLevelComplete = false;
-    score = 0;
-    Player* p = dynamic_cast<Player*>(player);
-    if (p) p->reset();
-    loadLevel();
+        // Algoritmo de colisión AABB estándar
+        if (pX < eX + eW && pX + pW > eX &&
+            pY < eY + eH && pY + pH > eY)
+        {
+            player->onCollision(ent);
+        }
+    }
+
+    // === 2. REVISAR ITEMS ===
+    for (Item* item : items) {
+        if (item->getIsCollected() || !item->isActive()) continue;
+
+        float iX = item->getPosition().x();
+        float iY = item->getPosition().y();
+        float iW = item->getWidth();
+        float iH = item->getHeight();
+
+        if (pX < iX + iW && pX + pW > iX &&
+            pY < iY + iH && pY + pH > iY)
+        {
+            player->onCollision(item);
+        }
+    }
 }
