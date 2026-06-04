@@ -3,6 +3,7 @@
 #include "../entities/entity.h"
 #include "../entities/obstacle.h"
 #include "../entities/item.h"
+#include "../entities/enemy.h"
 
 #include <QDebug>
 #include <cstdlib>
@@ -11,15 +12,15 @@
 Game::Game()
 {
     player = new Player();
+    enemy = new Enemy();
     score = 0;
-
-    // ✨ Iniciamos el juego en modo MENU
     status = GameStatus::MENU;
 }
 
 Game::~Game()
 {
     delete player;
+    delete enemy;
     for (Entity* e : entities) { delete e; }
     entities.clear();
     for (Item* i : items) { delete i; }
@@ -73,19 +74,41 @@ void Game::update(float dt)
                 return; // Salimos inmediatamente si gana
             }
         }
+
+        enemy->update(subDt);
+        enemy->setPosition(
+            QVector2D(
+                player->getPosition().x() + 1000.0f,
+                enemy->getPosition().y() - 100.0f
+                )
+            );
+
+        if(enemy->canShoot())
+        {
+            qDebug() << "DISPARO";
+
+            enemy->resetShootTimer();
+
+            spawnProjectile();
+        }
+
     }
+
+
+
 }
 
 
 void Game::reset()
 {
     score = 0;
-
-    // ✨ Al reiniciar, volvemos a poner el juego en el menú
     status = GameStatus::MENU;
 
     Player* p = dynamic_cast<Player*>(player);
     if (p) p->reset();
+
+    enemy->setPosition(QVector2D(1100.0f,250.0f));
+    enemy->setActive(true);
 
     loadLevel();
 }
@@ -105,9 +128,6 @@ void Game::loadLevel()
 
     float currentX = 600.0f;
     float endX = 25000.0f;
-
-    // 🔥 DEFINIMOS EL SUELO AQUÍ 🔥
-    // Ajusta este número (por ejemplo 380.0f o 400.0f) según dónde camine Crash
     float floorY = 380.0f;
 
     while (currentX < endX) {
@@ -118,17 +138,17 @@ void Game::loadLevel()
 
         int spawnChance = std::rand() % 100;
 
-        if (spawnChance < 10) {
+        if (spawnChance < 5) {
             float randomY = std::rand() % 250;
             entities.push_back(new Obstacle("saw", QVector2D(currentX + 200.0f, randomY)));
         }
-        else if (spawnChance < 35) {
+        else if (spawnChance < 20) {
             entities.push_back(new Obstacle("floating", QVector2D(currentX, 270.0f)));
         }
-        else if (spawnChance < 55) {
+        else if (spawnChance < 60) {
             // Ahora restamos 40 a floorY para que el tronco de 40px de alto
             // quede reposando exactamente sobre la línea del piso.
-            entities.push_back(new Obstacle("log", QVector2D(currentX, floorY - 30.0f)));        }
+            entities.push_back(new Obstacle("log", QVector2D(currentX, floorY - 15.0f)));        }
         else {
             float fruitHeight = 230.0f + (std::rand() % 136);
             items.push_back(new Item("fruit", QVector2D(currentX, fruitHeight), 25, 25));
@@ -140,61 +160,137 @@ void Game::loadLevel()
 
 void Game::checkCollisions()
 {
-    if (!player || !player->isActive()) return;
+    if (!player || !player->isActive())
+        return;
 
-    float pX = player->getPosition().x();
-    float pY = player->getPosition().y();
+    float pW = player->getWidth();
+    float pH = player->getHeight();
 
-    // Mantenemos la hitbox de Crash ligeramente ajustada (36x36)
-    // para que los saltos se sientan fluidos y justos en las esquinas.
-    float pW = 36.0f;
-    float pH = 36.0f;
+    float pX = player->getPosition().x() - (pW * 0.5f);
+    float pY = player->getPosition().y() - pH + 25.0f;
 
-    // === 1. REVISAR OBSTÁCULOS ===
-    for (Entity* ent : entities) {
-        if (!ent->isActive()) continue;
+    for (Entity* ent : entities)
+    {
+        if (!ent->isActive())
+            continue;
 
         float eX = ent->getPosition().x();
         float eY = ent->getPosition().y();
 
-        // Medida estándar para sierras, flotantes y ahora tus troncos de 40x40
-        float eW = 40.0f;
-        float eH = 40.0f;
+        float eW = ent->getWidth();
+        float eH = ent->getHeight();
 
-        Obstacle* obs = dynamic_cast<Obstacle*>(ent);
-        if (obs) {
-            QString type = obs->getType().toLower();
-            if (type == "log" || type == "tronco") {
-                // 🎯 AJUSTE DE REGLA EN 40x40:
-                // Dejamos el ancho en 40, pero bajamos el alto matemático a 35.
-                // Esos 5 píxeles menos en el techo evitan que Crash colisione
-                // falsamente si su pie roza el borde superior al saltar a toda velocidad.
-                eW = 40.0f;
-                eH = 35.0f;
-            }
-        }
-
-        // Algoritmo de colisión AABB estándar
-        if (pX < eX + eW && pX + pW > eX &&
-            pY < eY + eH && pY + pH > eY)
+        if (pX < eX + eW &&
+            pX + pW > eX &&
+            pY < eY + eH &&
+            pY + pH > eY)
         {
             player->onCollision(ent);
         }
     }
 
-    // === 2. REVISAR ITEMS ===
-    for (Item* item : items) {
-        if (item->getIsCollected() || !item->isActive()) continue;
+    for (Item* item : items)
+    {
+        if (!item->isActive())
+            continue;
 
         float iX = item->getPosition().x();
         float iY = item->getPosition().y();
+
         float iW = item->getWidth();
         float iH = item->getHeight();
 
-        if (pX < iX + iW && pX + pW > iX &&
-            pY < iY + iH && pY + pH > iY)
+        if (pX < iX + iW &&
+            pX + pW > iX &&
+            pY < iY + iH &&
+            pY + pH > iY)
         {
             player->onCollision(item);
         }
     }
+}
+
+void Game::spawnProjectile()
+{
+    if(!enemy || !player)
+        return;
+
+    // ==========================================
+    // PERCEPCIÓN
+    // ==========================================
+
+    float playerX = player->getPosition().x();
+    float playerY = player->getPosition().y();
+
+    float playerVX = player->getVelocity().x();
+    float playerVY = player->getVelocity().y();
+
+    float enemyX = enemy->getPosition().x();
+    float enemyY = enemy->getPosition().y();
+
+    // ==========================================
+    // PREDICCIÓN
+    // ==========================================
+
+    float predictionTime = 0.6f;
+
+    float futureX =
+        playerX +
+        playerVX * predictionTime;
+
+    float futureY =
+        playerY +
+        playerVY * predictionTime;
+
+    // ==========================================
+    // DECISIÓN PROBABILÍSTICA
+    // ==========================================
+
+    int chance = rand() % 100;
+
+    if(chance > 35)
+        return;
+
+    // ==========================================
+    // CREAR PROYECTIL
+    // ==========================================
+
+    Obstacle* projectile =
+        new Obstacle(
+            "saw",
+            QVector2D(enemyX, enemyY)
+            );
+
+    // ==========================================
+    // RAZONAMIENTO
+    // ==========================================
+
+    float dx =
+        futureX -
+        enemyX;
+
+    float dy =
+        futureY -
+        enemyY;
+
+    // Velocidad horizontal fija
+    float vx = -650.0f;
+
+    // Velocidad vertical adaptativa
+    float vy =
+        -650.0f +
+        (dy * 0.40f);
+
+    // Limitar valores extremos
+    if(vy < -900.0f)
+        vy = -900.0f;
+
+    if(vy > -250.0f)
+        vy = -250.0f;
+
+    projectile->setVelocity(
+        QVector2D(-2000.0f, -800.0f)
+        );
+
+    entities.push_back(projectile);
 }

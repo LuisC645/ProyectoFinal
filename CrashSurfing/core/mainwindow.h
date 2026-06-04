@@ -19,17 +19,42 @@ private:
     QGraphicsView* view;
     QTimer* timer;
 
-    QGraphicsItem* visualPlayer;
     QGraphicsTextItem* hudText;
     QGraphicsTextItem* gameOverText;
 
     std::vector<QGraphicsItem*> visualEntities;
     std::vector<QGraphicsItem*> visualItems;
+    QGraphicsPixmapItem* visualPlayer;
 
-    QGraphicsTextItem* menuTitleText;  // Textos del menú de inicio
+    QGraphicsRectItem* enemyDebugRect;
+
+    QPixmap pixPlayerRun;
+    QPixmap pixPlayerJump;
+    QPixmap pixPlayerGameOver;
+
+    QPixmap pixObstacleLog;
+    QPixmap pixObstacleRock;
+    QPixmap pixObstacleSaw;
+    QPixmap pixFruit;
+
+    QGraphicsTextItem* menuTitleText;
     QGraphicsTextItem* menuInfoText;
+    QGraphicsRectItem* physicsHitboxDebug;
+    QVector<QGraphicsRectItem*> obstaclePhysicsDebug;
+    QVector<QGraphicsRectItem*> fruitPhysicsDebug;
 
     void createVisualEntities();
+    void clearVisualEntities();
+
+    // Contenedores gráficos para las capas de fondo
+    QGraphicsRectItem* bgLayer1; // Capa 1: Mas lejana (Cielo y Nubes)
+    QGraphicsRectItem* bgLayer2; // Capa 2: Intermedia (Paisaje y Montañas)
+    QGraphicsRectItem* bgLayer3; // Capa 3: Superficie del río (Suelo)
+
+    // Dimensiones de ancho de las imágenes para el cálculo de envoltura (wrapping)
+    int bgLayer1Width;
+    int bgLayer2Width;
+    int bgLayer3Width;
 
 protected:
     virtual void keyPressEvent(QKeyEvent *event) override;

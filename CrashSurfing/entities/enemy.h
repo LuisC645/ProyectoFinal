@@ -13,6 +13,15 @@ private:
     Agent* agent;
     unsigned short health;
 
+    float shootTimer;
+    float shootCooldown;
+
+    int misses;
+
+    float throwForce;
+
+    float phase;
+
 public:
     Enemy();
     ~Enemy();
@@ -25,6 +34,9 @@ public:
 
     unsigned short getHealth() const { return health; }
     void setHealth(unsigned short h) { health = h; }
+    bool canShoot() const;
+    void resetShootTimer();
+
 };
 
 #endif // ENEMY_H

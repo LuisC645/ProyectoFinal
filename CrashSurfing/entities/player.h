@@ -41,6 +41,8 @@ public:
     int getCollectedFruits() const { return collectedFruits; }
     bool getIsGlutton() const { return isGlutton; }
     bool getIsInvincible() const { return isInvincible; }
+    bool getIsGrounded() const { return isGrounded; }
+
 };
 
 #endif // PLAYER_H

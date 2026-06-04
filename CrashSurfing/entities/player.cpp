@@ -13,6 +13,9 @@ Player::Player()
 
     invincibilityDuration = 2.0f;
 
+    width = 30;
+    height = 60;
+
     reset(); // Inicializa todos los valores limpios
 }
 
