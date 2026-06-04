@@ -122,62 +122,41 @@ void Player::onCollision(Entity* other)
 {
     if (!other->isActive()) return;
 
-    // === 1. SI ES UN OBSTÁCULO (Sierra, Drone, Tronco) ===
     Obstacle* obs = dynamic_cast<Obstacle*>(other);
     if (obs) {
         QString type = obs->getType().toLower();
 
-        // Los obstáculos SIEMPRE hacen daño. No les importa si eres Glotón.
-        if (type == "saw" || type == "floating" || type == "log" || type == "tronco") {
+        if (type == "saw" || type == "floating" || type == "log") {
             if (!isInvincible) {
                 takeDamage();
             } else {
-                qDebug() << "Tocaste un obstáculo, pero estabas Invencible.";
+                qDebug() << "Colision pero invencible";
             }
-
-            // Como mencionas que el tronco desaparece al chocar,
-            // lo desactivamos aquí manualmente después de aplicar el daño:
+            // Desactivar si colisiona
             obs->setActive(false);
         }
         return;
     }
 
-    // === 2. SI ES UN OBJETO (Caja, Fruta o Tronco por si se creó como Item) ===
+    // Frutas
     Item* item = dynamic_cast<Item*>(other);
     if (item && !item->getIsCollected()) {
         QString type = item->getType().toLower();
 
-        // LÓGICA EXCLUSIVA DE LA CAJA
-        if (type == "box") {
-            if (isGlutton) {
-                item->setActive(false);
-                qDebug() << "Tienes más de 5 frutas (Glotón activo). Rompes la caja a salvo.";
-            } else {
-                if (!isInvincible) {
-                    takeDamage();
-                }
-            }
-        }
-        // LÓGICA EXCLUSIVA DE LA FRUTA
-        else if (type == "fruit") {
+        // Fruta
+        if (type == "fruit") {
             item->setActive(false);
             collectItem();
 
             if (collectedFruits >= fruitsNeededForNextRush) {
                 fruitsNeededForNextRush += 5;
-                qDebug() << "Mas velocidad." << fruitsNeededForNextRush;
+                qDebug() << "Mas velocidad" << fruitsNeededForNextRush;
             }
         }
-        // ¡CANDADO DE SEGURIDAD! Si por error creaste el tronco como "Item":
-        // Evitamos que entre a la lógica de la caja y lo obligamos a hacer daño.
-        else if (type == "log" || type == "tronco") {
-            if (!isInvincible) {
-                takeDamage();
-            }
-            item->setActive(false); // Desaparece tras hacerte daño
-        }
+        item->setActive(false); // Desaparece tras hacerte daño
     }
 }
+
 
 void Player::reset()
 {

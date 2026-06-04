@@ -8,7 +8,6 @@
 class Obstacle : public Entity {
 private:
     QString type;
-    QVector2D velocity;
     float initialY;
 
 public:

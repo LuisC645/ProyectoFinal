@@ -21,8 +21,10 @@ MainWindow::MainWindow(QWidget *parent)
     pixPlayerJump = QPixmap(":/new/prefix1/resources/crash_jump.png");
     pixPlayerGameOver = QPixmap(":/new/prefix1/resources/crash_gameOver.png");
 
-    if (pixPlayerRun.isNull() || pixPlayerJump.isNull() || pixPlayerGameOver.isNull()) {
-        qDebug() << "Error con sprites crash";
+    pixEnemy1 = QPixmap(":/new/prefix1/resources/enemy1.png");
+
+    if (pixPlayerRun.isNull() || pixPlayerJump.isNull() || pixPlayerGameOver.isNull() || pixEnemy1.isNull()) {
+        qDebug() << "Error con sprites crash o enemy";
     }
 
     // Obstaculos
@@ -102,6 +104,12 @@ MainWindow::MainWindow(QWidget *parent)
     visualPlayer->setPixmap(pixPlayerRun.scaled(180, 180, Qt::IgnoreAspectRatio, Qt::SmoothTransformation));
     visualPlayer->setZValue(10);
     scene->addItem(visualPlayer);
+
+    // Enemy
+    visualEnemy1 = new QGraphicsPixmapItem();
+    visualEnemy1->setPixmap(pixPlayerRun.scaled(180, 180, Qt::IgnoreAspectRatio, Qt::SmoothTransformation));
+    visualEnemy1->setZValue(10);
+    scene->addItem(visualEnemy1);
 
     float startX = 0.0f;
     float startY = 0.0f;
@@ -311,14 +319,12 @@ void MainWindow::updateGameLoop()
         }
         else if (!p->getIsGrounded()) {
             pixmapPlayer->setPixmap(pixPlayerJump.scaled(220, 160, Qt::IgnoreAspectRatio, Qt::SmoothTransformation));
-            pixmapPlayer->setOpacity(p->getIsGlutton() ? 0.6 : 1.0);
 
             alignedX = currentCrashX - 90.0f;
             alignedY = currentCrashY - 60.0f;
         }
         else {
             pixmapPlayer->setPixmap(pixPlayerRun.scaled(180, 180, Qt::IgnoreAspectRatio, Qt::SmoothTransformation));
-            pixmapPlayer->setOpacity(p->getIsGlutton() ? 0.6 : 1.0);
 
             alignedX = currentCrashX - 90.0f;
             alignedY = currentCrashY - 80.0f;
@@ -338,10 +344,21 @@ void MainWindow::updateGameLoop()
         if (visualPlayer) visualPlayer->setVisible(true);
     }
 
-    // =====================================================
-    // ACTUALIZACIÓN VISUAL DE FRUTAS
-    // =====================================================
+    // Enemy
+    QGraphicsPixmapItem* pixmapEnemy1 = static_cast<QGraphicsPixmapItem*>(visualEnemy1);
+    if (pixmapEnemy1) {
+        float enemyX = enemy->getPosition().x();
+        float enemyY = enemy->getPosition().y() + 130.0f;
 
+        pixmapEnemy1->setPixmap(pixEnemy1.scaled( 220, 160,  Qt::IgnoreAspectRatio, Qt::SmoothTransformation));
+
+        float alignedX = enemyX - 90.0f;
+        float alignedY = enemyY - 150.0f;
+
+        pixmapEnemy1->setPos(alignedX, alignedY);
+    }
+
+    // Frutas
     while(visualEntities.size() < game->getEntities().size())
     {
         Entity* entity = game->getEntities()[visualEntities.size()];
@@ -361,9 +378,9 @@ void MainWindow::updateGameLoop()
 
         if(tipo == "saw")
         {
-            texture = pixObstacleSaw;
-            spriteW = 120.0f;
-            spriteH = 100.0f;
+            texture = pixObstacleRock;
+            spriteW = 130.0f;
+            spriteH = 130.0f;
         }
         else if(tipo == "log")
         {
@@ -373,7 +390,7 @@ void MainWindow::updateGameLoop()
         }
         else if(tipo == "floating")
         {
-            texture = pixObstacleRock;
+            texture = pixObstacleSaw;
             spriteW = 100.0f;
             spriteH = 67.0f;
         }
@@ -428,9 +445,7 @@ void MainWindow::updateGameLoop()
         float itemY =
             backendItems[i]->getPosition().y() + 135.0f;
 
-        // ====================================
-        // HITBOX REAL
-        // ====================================
+        // Hitbox
 
         if(i < fruitPhysicsDebug.size())
         {

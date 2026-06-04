@@ -16,13 +16,8 @@ Enemy::Enemy() : Entity()
     height = 100.0f;
 
     shootTimer = 0.0f;
-    shootCooldown = 7.0f;
+    shootCooldown = 10.0f;
 
-    misses = 0;
-
-    throwForce = 2000.0f;
-
-    phase = 0.0f;
 }
 
 Enemy::~Enemy()
@@ -45,7 +40,7 @@ void Enemy::update(float dt)
 
     tiempoEnemy += dt * 0.5f;
 
-    position.setY(250.0f + std::sin(tiempoEnemy) * 40.0f);
+    position.setY(120.0f + std::sin(tiempoEnemy) * 60.0f);
 }
 
 bool Enemy::canShoot() const

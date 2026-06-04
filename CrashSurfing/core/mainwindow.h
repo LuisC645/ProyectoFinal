@@ -25,12 +25,15 @@ private:
     std::vector<QGraphicsItem*> visualEntities;
     std::vector<QGraphicsItem*> visualItems;
     QGraphicsPixmapItem* visualPlayer;
+    QGraphicsPixmapItem* visualEnemy1;
 
     QGraphicsRectItem* enemyDebugRect;
 
     QPixmap pixPlayerRun;
     QPixmap pixPlayerJump;
     QPixmap pixPlayerGameOver;
+
+    QPixmap pixEnemy1;
 
     QPixmap pixObstacleLog;
     QPixmap pixObstacleRock;

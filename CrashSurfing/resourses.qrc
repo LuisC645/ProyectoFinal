@@ -10,5 +10,6 @@
         <file>resources/fruit.png</file>
         <file>resources/Rock.png</file>
         <file>resources/floating.png</file>
+        <file>resources/enemy1.png</file>
     </qresource>
 </RCC>

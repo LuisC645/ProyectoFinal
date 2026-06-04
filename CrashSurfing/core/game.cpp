@@ -32,24 +32,19 @@ void Game::update(float dt)
     // 1. Si no estamos jugando, no hacemos nada
     if (status != GameStatus::PLAYING) return;
 
-    // CAP DE SEGURIDAD PARA EL LAG: Si el juego se congela un momento,
-    // evitamos que el 'dt' sea gigantesco y rompa las físicas.
+    // Si el juego se congela un momento, evitamos que el 'dt' sea grande y crashee
     if (dt > 0.1f) dt = 0.1f;
 
-    // === EL TRUCO DE ALTA VELOCIDAD: SUB-STEPPING ===
-    // En lugar de mover a Crash un tramo grande de golpe, dividimos el tiempo
-    // de este fotograma en 4 "mini-pasos".
+    // 4 por dt
     const int SUB_STEPS = 4;
     float subDt = dt / SUB_STEPS;
 
     for (int paso = 0; paso < SUB_STEPS; ++paso)
     {
-        // A) Mover al jugador un mini-tramo
         if (player) {
             player->update(subDt);
         }
 
-        // B) Mover los obstáculos y objetos un mini-tramo
         for (Entity* e : entities) {
             if (e->isActive()) e->update(subDt);
         }
@@ -57,9 +52,6 @@ void Game::update(float dt)
             if (!i->getIsCollected()) i->update(subDt);
         }
 
-        // C) ¡REVISAR COLISIONES EN CADA MINI-PASO!
-        // Al revisar las colisiones 4 veces por frame, Crash nunca avanzará más de
-        // 2-3 píxeles entre cada chequeo, haciendo imposible que atraviese nada.
         checkCollisions();
 
         // D) Verificar estados críticos del juego en cada sub-paso
@@ -75,11 +67,11 @@ void Game::update(float dt)
             }
         }
 
-        enemy->update(subDt);
+        enemy->update(dt);
         enemy->setPosition(
             QVector2D(
                 player->getPosition().x() + 1000.0f,
-                enemy->getPosition().y() - 100.0f
+                enemy->getPosition().y()
                 )
             );
 
@@ -91,13 +83,9 @@ void Game::update(float dt)
 
             spawnProjectile();
         }
-
     }
 
-
-
 }
-
 
 void Game::reset()
 {
@@ -138,17 +126,12 @@ void Game::loadLevel()
 
         int spawnChance = std::rand() % 100;
 
-        if (spawnChance < 5) {
-            float randomY = std::rand() % 250;
-            entities.push_back(new Obstacle("saw", QVector2D(currentX + 200.0f, randomY)));
-        }
-        else if (spawnChance < 20) {
+        if (spawnChance < 20) {
             entities.push_back(new Obstacle("floating", QVector2D(currentX, 270.0f)));
         }
         else if (spawnChance < 60) {
-            // Ahora restamos 40 a floorY para que el tronco de 40px de alto
-            // quede reposando exactamente sobre la línea del piso.
-            entities.push_back(new Obstacle("log", QVector2D(currentX, floorY - 15.0f)));        }
+            entities.push_back(new Obstacle("log", QVector2D(currentX, floorY - 15.0f)));
+        }
         else {
             float fruitHeight = 230.0f + (std::rand() % 136);
             items.push_back(new Item("fruit", QVector2D(currentX, fruitHeight), 25, 25));
@@ -215,10 +198,6 @@ void Game::spawnProjectile()
     if(!enemy || !player)
         return;
 
-    // ==========================================
-    // PERCEPCIÓN
-    // ==========================================
-
     float playerX = player->getPosition().x();
     float playerY = player->getPosition().y();
 
@@ -228,69 +207,38 @@ void Game::spawnProjectile()
     float enemyX = enemy->getPosition().x();
     float enemyY = enemy->getPosition().y();
 
-    // ==========================================
-    // PREDICCIÓN
-    // ==========================================
+    float distance = enemyX - playerX;
+    float predictionTime = distance / 500.0f;
 
-    float predictionTime = 0.6f;
+    if(predictionTime < 0.4f){ predictionTime = 0.4f; }
+    if(predictionTime > 1.5f){ predictionTime = 1.5f; }
 
-    float futureX =
-        playerX +
-        playerVX * predictionTime;
+    float futureX = playerX + playerVX * predictionTime;
+    float futureY =  playerY + playerVY * predictionTime;
 
-    float futureY =
-        playerY +
-        playerVY * predictionTime;
-
-    // ==========================================
-    // DECISIÓN PROBABILÍSTICA
-    // ==========================================
+    float threat = 0.0f;
+    if(std::abs(playerVY) < 100.0f){ threat += 30.0f; }
+    if(playerY > 180.0f && playerY < 320.0f){ threat += 40.0f; }
+    if(distance < 1200.0f){ threat += 30.0f; }
 
     int chance = rand() % 100;
 
-    if(chance > 35)
-        return;
+    if(chance > threat){ return; }
 
-    // ==========================================
-    // CREAR PROYECTIL
-    // ==========================================
+    Obstacle* projectile = new Obstacle("saw", QVector2D(enemyX, enemyY));
 
-    Obstacle* projectile =
-        new Obstacle(
-            "saw",
-            QVector2D(enemyX, enemyY)
-            );
+    float dx = enemyX - futureX;
+    float vx = -450.0f;
+    float vy = -180.0f  - (dx * 0.05f) + (futureY - enemyY) * 0.25f;
 
-    // ==========================================
-    // RAZONAMIENTO
-    // ==========================================
+    float aimError = (rand() % 60) - 30;
+    vy += aimError;
 
-    float dx =
-        futureX -
-        enemyX;
+    if(vy < -450.0f){ vy = -450.0f; }
 
-    float dy =
-        futureY -
-        enemyY;
+    if(vy > -120.0f){ vy = -120.0f; }
 
-    // Velocidad horizontal fija
-    float vx = -650.0f;
-
-    // Velocidad vertical adaptativa
-    float vy =
-        -650.0f +
-        (dy * 0.40f);
-
-    // Limitar valores extremos
-    if(vy < -900.0f)
-        vy = -900.0f;
-
-    if(vy > -250.0f)
-        vy = -250.0f;
-
-    projectile->setVelocity(
-        QVector2D(-2000.0f, -800.0f)
-        );
-
+    // DISPARO
+    projectile->setVelocity(QVector2D(vx, vy));
     entities.push_back(projectile);
 }
