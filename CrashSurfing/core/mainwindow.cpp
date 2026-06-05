@@ -12,6 +12,10 @@
 #include "../entities/item.h"
 #include "../entities/enemy.h"
 
+#include "../core/uimanager.h"
+UIManager* ui;
+
+
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
 {
@@ -42,27 +46,22 @@ MainWindow::MainWindow(QWidget *parent)
         qDebug() << "Error con sprites fruta";
     }
 
-
     // 1. INICIALIZAR BACKEND
     game = new Game();
     game->loadLevel();
-
-    gameOverText = nullptr;
-    menuTitleText = nullptr;
-    menuInfoText = nullptr;
 
     // 2. CONFIGURAR ESCENA Y VISTA
     scene = new QGraphicsScene(0, 0, 30000, 600, this);
     scene->setBackgroundBrush(Qt::black);
 
     // Hitbox crash
-    physicsHitboxDebug = scene->addRect(0, 0, 30, 50, QPen(Qt::yellow, 3));
-    physicsHitboxDebug->setBrush(QColor(255,255,0,60));
-    physicsHitboxDebug->setZValue(500);
+    physicsHitboxDebug = scene->addRect(0, 0, 30, 50, QPen(Qt::NoPen));
+    //physicsHitboxDebug->setBrush(QColor(255,255,0,60));
+    physicsHitboxDebug->setZValue(20);
 
-    enemyDebugRect = scene->addRect(0,0,60,100,QPen(Qt::red,3));
-    enemyDebugRect->setBrush(QColor(255,0,0,80));
-    enemyDebugRect->setZValue(1000);
+    enemyDebugRect = scene->addRect(0,0,60,100,QPen(Qt::NoPen));
+    // enemyDebugRect->setBrush(QColor(255,0,0,80));
+    enemyDebugRect->setZValue(20);
 
     // Debug piso
     //QGraphicsLineItem* floorDebug = scene->addLine(0, 400, 30000, 350, QPen(Qt::green, 3));
@@ -99,11 +98,18 @@ MainWindow::MainWindow(QWidget *parent)
     setFixedSize(1600, 600);
     setWindowTitle("Crash Surfing");
 
+
     // 3. CREAR JUGADOR
     visualPlayer = new QGraphicsPixmapItem();
     visualPlayer->setPixmap(pixPlayerRun.scaled(180, 180, Qt::IgnoreAspectRatio, Qt::SmoothTransformation));
     visualPlayer->setZValue(10);
     scene->addItem(visualPlayer);
+
+    // UI
+    ui = new UIManager(scene);
+    hudText = new QGraphicsTextItem();
+    hudText->setDefaultTextColor(Qt::white);
+    scene->addItem(hudText);
 
     // Enemy
     visualEnemy1 = new QGraphicsPixmapItem();
@@ -128,24 +134,12 @@ MainWindow::MainWindow(QWidget *parent)
         visualPlayer->setPos(alignedStartX, alignedStartY);
     }
 
-    // 4.
-    hudText = scene->addText("VIDAS: 3  |  WUMPAS: 0");
-    hudText->setDefaultTextColor(Qt::white);
-    hudText->setFont(QFont("Arial", 16, QFont::Bold));
-    hudText->setZValue(10);
-    hudText->setVisible(false);
+    menuSelectionText =  new QGraphicsTextItem();
+    menuSelectionText->setDefaultTextColor(Qt::white);
 
-    menuTitleText = scene->addText("CRASH SURFING");
-    menuTitleText->setDefaultTextColor(QColor(255, 102, 0));
-    menuTitleText->setFont(QFont("Impact", 55, QFont::Bold));
-    menuTitleText->setZValue(11);
-    menuTitleText->setPos(startX + 180, 160);
-
-    menuInfoText = scene->addText("PRESIONA 'ENTER' PARA COMENZAR");
-    menuInfoText->setDefaultTextColor(Qt::white);
-    menuInfoText->setFont(QFont("Arial", 16, QFont::Bold));
-    menuInfoText->setZValue(11);
-    menuInfoText->setPos(startX + 210, 270);
+    QFont font; font.setPointSize(16);
+    menuSelectionText->setFont(font);
+    scene->addItem(menuSelectionText);
 
     // 5. HAcer el nivel
     createVisualEntities();
@@ -159,59 +153,91 @@ MainWindow::MainWindow(QWidget *parent)
 MainWindow::~MainWindow()
 {
     delete game;
+    delete ui;
 }
 
 void MainWindow::keyPressEvent(QKeyEvent *event)
 {
-    if (!game) return;
+    if(!game) return;
 
     GameStatus currentStatus = game->getStatus();
 
-    if (currentStatus == GameStatus::MENU) {
-        if (event->key() == Qt::Key_Return || event->key() == Qt::Key_Enter) {
-            game->setStatus(GameStatus::PLAYING);
+    if(currentStatus == GameStatus::MENU)
+    {
+        if(event->key() == Qt::Key_Up){ selectedLevel = LevelType::LEVEL_1; return; }
+        if(event->key() == Qt::Key_Down){ selectedLevel = LevelType::LEVEL_2; return; }
 
-            if (menuTitleText) menuTitleText->setVisible(false);
-            if (menuInfoText) menuInfoText->setVisible(false);
-            if (hudText) hudText->setVisible(true);
+        if(event->key() == Qt::Key_Left || event->key() == Qt::Key_Right)
+        {
+            selectedDifficulty =selectedDifficulty == Difficulty::EASY ? Difficulty::HARD : Difficulty::EASY;
+            return;
+        }
+        if(event->key() == Qt::Key_Return || event->key() == Qt::Key_Enter)
+        {
+            game->setStatus(GameStatus::PLAYING);
+            ui->hideMenu();
         }
         return;
     }
 
-    if (currentStatus == GameStatus::GAME_OVER || currentStatus == GameStatus::LEVEL_COMPLETE) {
-        if (event->key() == Qt::Key_R) {
-
-            if (gameOverText) {
-                scene->removeItem(gameOverText);
-                delete gameOverText;
-                gameOverText = nullptr;
-            }
-
+    if(currentStatus == GameStatus::GAME_OVER || currentStatus == GameStatus::LEVEL_COMPLETE)
+    {
+        if(event->key() == Qt::Key_R)
+        {
             clearVisualEntities();
             game->reset();
             createVisualEntities();
 
-            if (visualPlayer) {
+            if(visualPlayer && game->getPlayer())
+            {
                 visualPlayer->setVisible(true);
-                if (game->getPlayer()) {
-                    visualPlayer->setPos(game->getPlayer()->getPosition().x(),
-                                         game->getPlayer()->getPosition().y());
-                }
+                visualPlayer->setPos(game->getPlayer()->getPosition().x(), game->getPlayer()->getPosition().y());
             }
-
-            float playerX = game->getPlayer()->getPosition().x();
-            if (menuTitleText) { menuTitleText->setPos(playerX + 180, 160); menuTitleText->setVisible(true); }
-            if (menuInfoText) { menuInfoText->setPos(playerX + 210, 270); menuInfoText->setVisible(true); }
-            if (hudText) hudText->setVisible(false);
+            game->setStatus(GameStatus::PLAYING);
+            ui->hideAll();
         }
         return;
     }
 
-    if (currentStatus == GameStatus::PLAYING) {
-        Player* player = dynamic_cast<Player*>(game->getPlayer());
-        if (!player) return;
+    if(currentStatus == GameStatus::PAUSED)
+    {
+        if(event->key() == Qt::Key_Escape)
+        {
+            game->setStatus(GameStatus::PLAYING);
+            ui->hidePause();
+            return;
+        }
+        if(event->key() == Qt::Key_R)
+        {
+            clearVisualEntities();
+            game->reset();
+            createVisualEntities();
+            game->setStatus(GameStatus::PLAYING);
+            ui->hideAll();
+            return;
+        }
+        if(event->key() == Qt::Key_M)
+        {
+            game->setStatus(GameStatus::MENU);
+            ui->hideAll();
+            return;
+        }
+        return;
+    }
 
-        if (event->key() == Qt::Key_Space || event->key() == Qt::Key_Up) {
+    if(currentStatus == GameStatus::PLAYING)
+    {
+        if(event->key() == Qt::Key_Escape)
+        {
+            game->setStatus(GameStatus::PAUSED);
+            ui->showPause(game->getPlayer()->getPosition().x());
+            return;
+        }
+
+        Player* player = dynamic_cast<Player*>(game->getPlayer());
+        if(!player){ return; }
+        if(event->key() == Qt::Key_Space || event->key() == Qt::Key_Up)
+        {
             player->jump();
         }
     }
@@ -224,85 +250,69 @@ void MainWindow::keyReleaseEvent(QKeyEvent *event)
 
 void MainWindow::updateGameLoop()
 {
-    if (!game || !game->getPlayer()) return;
+    if(!game || !game->getPlayer()){ return; }
 
     Player* p = dynamic_cast<Player*>(game->getPlayer());
-    if (!p) return;
+
+    if(!p){ return; }
+
+    float playerX = p->getPosition().x();
+    float playerY = p->getPosition().y();
 
     GameStatus currentStatus = game->getStatus();
 
-    // 1. Actualizar físicas del Backend
-    game->update(0.016f);
-
-    if (currentStatus == GameStatus::PLAYING && p->getCollectedFruits() >= 30) {
-        game->setStatus(GameStatus::LEVEL_COMPLETE);
-        currentStatus = GameStatus::LEVEL_COMPLETE;
-    }
-
-    Enemy* enemy = game->getEnemy();
-
-    if(enemy)
+    if(currentStatus == GameStatus::PLAYING)
     {
-        enemyDebugRect->setRect(
-            enemy->getPosition().x(),
-            enemy->getPosition().y(),
-            enemy->getWidth(),
-            enemy->getHeight()
-            );
-
-        enemyDebugRect->setVisible(
-            enemy->isActive()
-            );
+        game->update(0.016f);
     }
-
-    // 2. Control de Estados del Menú y Fin de Juego
-    if (currentStatus == GameStatus::MENU) {
-        view->centerOn(p->getPosition().x() + 400, 300);
+    if(currentStatus == GameStatus::PAUSED)
+    {
+        ui->hideAll();
+        ui->showPause(playerX);
+        return;
+    }
+    if(currentStatus == GameStatus::MENU)
+    {
+        ui->hideAll();
+        ui->showMenu(selectedLevel, selectedDifficulty);
+        view->centerOn(0, 0);
         return;
     }
 
-    if (currentStatus == GameStatus::LEVEL_COMPLETE) {
-        if (!gameOverText) {
-            gameOverText = new QGraphicsTextItem("¡NIVEL COMPLETADO!\nPresiona 'R' para jugar de nuevo");
-            gameOverText->setDefaultTextColor(Qt::green);
-            QFont font = gameOverText->font(); font.setPointSize(30); font.setBold(true);
-            gameOverText->setFont(font); scene->addItem(gameOverText);
-        }
-        gameOverText->setPos(p->getPosition().x() + 150, 180);
-        gameOverText->setVisible(true);
+    if(currentStatus == GameStatus::GAME_OVER)
+    {
+        visualPlayer->setPixmap(pixPlayerGameOver.scaled(250, 200,  Qt::IgnoreAspectRatio, Qt::SmoothTransformation));
+        ui->hideAll();
+        ui->showGameOver(playerX);
         return;
     }
 
-    if (currentStatus == GameStatus::GAME_OVER) {
-        if (!gameOverText) {
-            gameOverText = new QGraphicsTextItem("GAME OVER\nPresiona 'R' para reiniciar");
-            gameOverText->setDefaultTextColor(Qt::red);
-            QFont font = gameOverText->font(); font.setPointSize(30); font.setBold(true);
-            gameOverText->setFont(font); scene->addItem(gameOverText);
-        }
-        gameOverText->setPos(p->getPosition().x() + 200, 180);
-        gameOverText->setVisible(true);
+    if(currentStatus == GameStatus::LEVEL_COMPLETE)
+    {
+        ui->hideAll();
+        ui->showLevelComplete(playerX);
+        return;
     }
 
-    // 3. RUNTIME: CAMARA Y PARALLAX
-    float currentCrashX = p->getPosition().x();
-    float currentCrashY = p->getPosition().y() + 130.0f;
-    float cameraLeft = currentCrashX - 200.0f;
+    float currentCrashX = playerX;
+    float currentCrashY = playerY + 130.0f;
+    float cameraLeft = playerX - 200.0f;
 
-    float pW = p->getWidth();
-    float pH = p->getHeight();
-
-    physicsHitboxDebug->setRect(currentCrashX - (pW * 0.5f), currentCrashY - pH + 25.0f, pW, pH);
+    // physicsHitboxDebug->setRect(playerX - playerW * 0.5f, playerY + 155.0f - playerH, playerW, playerH);
 
     float offset1 = fmod(cameraLeft * 0.15f, bgLayer1Width);
-    bgLayer1->setPos(cameraLeft - offset1, -200);
+    bgLayer1->setPos(cameraLeft - offset1, -200.0f);
 
     float offset3 = fmod(cameraLeft, bgLayer3Width);
-    bgLayer3->setPos(cameraLeft - offset3, 50);
+    bgLayer3->setPos(cameraLeft - offset3, 50.0f);
 
-    // 4. INTERFAZ (HUD)
-    hudText->setPlainText(QString("VIDAS: %1   |   WUMPAS: %2") .arg(p->getLives()) .arg(p->getCollectedFruits()));
-    hudText->setPos(cameraLeft + 50, 30.0f);
+    QFont selectorFont;
+    selectorFont.setPointSize(20);
+    selectorFont.setBold(true);
+
+    hudText->setPlainText(QString("VIDAS: %1 | WUMPAS: %2") .arg(p->getLives()) .arg(p->getCollectedFruits()));
+    hudText->setPos(cameraLeft + 50.0f, 30.0f);
+    hudText->setFont(selectorFont);
 
     // 5. ACTUALIZACIÓN VISUAL DE CRASH
     QGraphicsPixmapItem* pixmapPlayer = static_cast<QGraphicsPixmapItem*>(visualPlayer);
@@ -313,23 +323,19 @@ void MainWindow::updateGameLoop()
         if (currentStatus == GameStatus::GAME_OVER) {
             pixmapPlayer->setPixmap(pixPlayerGameOver.scaled(220, 160, Qt::IgnoreAspectRatio, Qt::SmoothTransformation));
             pixmapPlayer->setOpacity(1.0);
-
             alignedX = currentCrashX - 60.0f; // Sprites correccion
             alignedY = currentCrashY - 40.0f;
         }
         else if (!p->getIsGrounded()) {
             pixmapPlayer->setPixmap(pixPlayerJump.scaled(220, 160, Qt::IgnoreAspectRatio, Qt::SmoothTransformation));
-
             alignedX = currentCrashX - 90.0f;
             alignedY = currentCrashY - 60.0f;
         }
         else {
             pixmapPlayer->setPixmap(pixPlayerRun.scaled(180, 180, Qt::IgnoreAspectRatio, Qt::SmoothTransformation));
-
             alignedX = currentCrashX - 90.0f;
             alignedY = currentCrashY - 80.0f;
         }
-
         pixmapPlayer->setPos(alignedX, alignedY);
     }
 
@@ -345,16 +351,21 @@ void MainWindow::updateGameLoop()
     }
 
     // Enemy
+    Enemy* enemy = game->getEnemy();
+
+    if(enemy)
+    {
+        // enemyDebugRect->setRect(enemy->getPosition().x(), enemy->getPosition().y(), enemy->getWidth(), enemy->getHeight());
+        enemyDebugRect->setVisible(enemy->isActive());
+    }
+
     QGraphicsPixmapItem* pixmapEnemy1 = static_cast<QGraphicsPixmapItem*>(visualEnemy1);
     if (pixmapEnemy1) {
         float enemyX = enemy->getPosition().x();
         float enemyY = enemy->getPosition().y() + 130.0f;
-
         pixmapEnemy1->setPixmap(pixEnemy1.scaled( 220, 160,  Qt::IgnoreAspectRatio, Qt::SmoothTransformation));
-
         float alignedX = enemyX - 90.0f;
         float alignedY = enemyY - 150.0f;
-
         pixmapEnemy1->setPos(alignedX, alignedY);
     }
 
@@ -362,17 +373,15 @@ void MainWindow::updateGameLoop()
     while(visualEntities.size() < game->getEntities().size())
     {
         Entity* entity = game->getEntities()[visualEntities.size()];
-
         Obstacle* obs = dynamic_cast<Obstacle*>(entity);
 
         if(!obs){ break; }
 
         QString tipo = obs->getType().toLower();
-
         QGraphicsPixmapItem* sprite = new QGraphicsPixmapItem();
 
         float spriteW = 130.0f;
-        float spriteH = 120.0f;
+        float spriteH = 110.0f;
 
         QPixmap texture;
 
@@ -380,19 +389,7 @@ void MainWindow::updateGameLoop()
         {
             texture = pixObstacleRock;
             spriteW = 130.0f;
-            spriteH = 130.0f;
-        }
-        else if(tipo == "log")
-        {
-            texture = pixObstacleLog;
-            spriteW = 130.0f;
-            spriteH = 120.0f;
-        }
-        else if(tipo == "floating")
-        {
-            texture = pixObstacleSaw;
-            spriteW = 100.0f;
-            spriteH = 67.0f;
+            spriteH = 100.0f;
         }
 
         float hitboxW = entity->getWidth();
@@ -411,160 +408,100 @@ void MainWindow::updateGameLoop()
 
         visualEntities.push_back(sprite);
 
-        QGraphicsRectItem* physicsBox = scene->addRect( 0, 0, hitboxW, hitboxH, QPen(Qt::cyan,2));
-        physicsBox->setBrush(QColor(0,255,255,40));
-        physicsBox->setZValue(500);
-
-        obstaclePhysicsDebug.push_back(physicsBox);
+        // QGraphicsRectItem* physicsBox = scene->addRect( 0, 0, hitboxW, hitboxH, QPen(Qt::cyan,2));
+        // physicsBox->setBrush(QColor(0,255,255,40));
+        // physicsBox->setZValue(500);
+        // obstaclePhysicsDebug.push_back(physicsBox);
     }
 
     const auto& backendItems = game->getItems();
-
-    for (size_t i = 0;
-         i < backendItems.size() &&
-         i < visualItems.size();
-         ++i)
+    for (size_t i = 0; i < backendItems.size() && i < visualItems.size(); ++i)
     {
-        if (!visualItems[i])
-            continue;
-
+        if (!visualItems[i]){ continue; }
         if (backendItems[i]->getIsCollected() ||
             !backendItems[i]->isActive())
         {
             visualItems[i]->setVisible(false);
-
-            if(i < fruitPhysicsDebug.size())
-                fruitPhysicsDebug[i]->setVisible(false);
+            if(i < fruitPhysicsDebug.size()){ fruitPhysicsDebug[i]->setVisible(false); }
 
             continue;
         }
 
-        float itemX =
-            backendItems[i]->getPosition().x();
-
-        float itemY =
-            backendItems[i]->getPosition().y() + 135.0f;
+        float itemX = backendItems[i]->getPosition().x();
+        float itemY = backendItems[i]->getPosition().y() + 135.0f;
 
         // Hitbox
-
         if(i < fruitPhysicsDebug.size())
         {
-            fruitPhysicsDebug[i]->setRect(
-                itemX,
-                itemY,
-                backendItems[i]->getWidth(),
-                backendItems[i]->getHeight()
-                );
-
+            fruitPhysicsDebug[i]->setRect(itemX, itemY, backendItems[i]->getWidth(), backendItems[i]->getHeight());
             fruitPhysicsDebug[i]->setVisible(true);
         }
 
-        QGraphicsPixmapItem* fruitSprite =
-            dynamic_cast<QGraphicsPixmapItem*>(
-                visualItems[i]
-                );
+        QGraphicsPixmapItem* fruitSprite = dynamic_cast<QGraphicsPixmapItem*>(visualItems[i]);
 
         if(fruitSprite)
         {
-            float offsetX =
-                fruitSprite->data(1).toFloat();
-
-            float offsetY =
-                fruitSprite->data(2).toFloat();
-
-            fruitSprite->setPos(
-                itemX - offsetX,
-                itemY - offsetY
-                );
+            float offsetX = fruitSprite->data(1).toFloat();
+            float offsetY = fruitSprite->data(2).toFloat();
+            fruitSprite->setPos(itemX - offsetX, itemY - offsetY);
         }
-
         visualItems[i]->setVisible(true);
     }
 
     // 8. ACTUALIZACIÓN VISUAL DE OBSTÁCULOS
     const auto& backendEntities = game->getEntities();
-    for (size_t i = 0;
-         i < backendEntities.size() &&
-         i < visualEntities.size();
-         ++i)
+    for (size_t i = 0; i < backendEntities.size() && i < visualEntities.size(); ++i)
     {
-        if (!visualEntities[i])
-            continue;
+        if (!visualEntities[i]){ continue; }
 
         if (!backendEntities[i]->isActive())
         {
             visualEntities[i]->setVisible(false);
-
-            if(i < obstaclePhysicsDebug.size())
-                obstaclePhysicsDebug[i]->setVisible(false);
-
+            if(i < obstaclePhysicsDebug.size()){ obstaclePhysicsDebug[i]->setVisible(false); }
             continue;
         }
 
         float entX = backendEntities[i]->getPosition().x();
         float entY = backendEntities[i]->getPosition().y() + 130.0f;
 
-        // HITBOX FÍSICA REAL (CYAN)
-
+        // HITBOX REAL (CYAN)
         if(i < obstaclePhysicsDebug.size())
         {
-            obstaclePhysicsDebug[i]->setRect(
-                entX,
-                entY,
-                backendEntities[i]->getWidth(),
-                backendEntities[i]->getHeight()
-                );
-
+            obstaclePhysicsDebug[i]->setRect(entX, entY,  backendEntities[i]->getWidth(), backendEntities[i]->getHeight()  );
             obstaclePhysicsDebug[i]->setVisible(true);
         }
 
         Obstacle* obs = dynamic_cast<Obstacle*>(backendEntities[i]);
         QGraphicsPixmapItem* pixmapEnt = dynamic_cast<QGraphicsPixmapItem*>(visualEntities[i]);
-
         if (obs && (obs->getType().toLower() == "log")) {
-
             if (pixmapEnt) {
                 float offsetX = pixmapEnt->data(1).toFloat();
                 float offsetY = pixmapEnt->data(2).toFloat();
-
                 float alignedX = entX - offsetX;
                 float alignedY = entY - offsetY + 35.0f;
-
                 pixmapEnt->setPos(alignedX, alignedY);
             }
         }
         else if(obs && (obs->getType().toLower() == "saw")){
-
             if (pixmapEnt) {
                 float offsetX = pixmapEnt->data(1).toFloat();
                 float offsetY = pixmapEnt->data(2).toFloat();
-
                 float alignedX = entX - offsetX + 0.0f;
-                float alignedY = entY - offsetY + 47.0f;
-
+                float alignedY = entY - offsetY + 35.0f;
                 pixmapEnt->setPos(alignedX, alignedY);
             }
         }
         else if(obs && (obs->getType().toLower() == "floating")){
-
             if (pixmapEnt) {
                 float offsetX = pixmapEnt->data(1).toFloat();
                 float offsetY = pixmapEnt->data(2).toFloat();
-
                 float alignedX = entX - offsetX + 0.0f;
                 float alignedY = entY - offsetY + 15.0f;
 
                 pixmapEnt->setPos(alignedX, alignedY);
-
                 pixmapEnt->setPos(alignedX, alignedY);
-
-                pixmapEnt->setTransformOriginPoint(
-                    pixmapEnt->boundingRect().center()
-                    );
-
-                pixmapEnt->setRotation(
-                    pixmapEnt->rotation() + 10.0f
-                    );
+                pixmapEnt->setTransformOriginPoint(pixmapEnt->boundingRect().center());
+                pixmapEnt->setRotation(pixmapEnt->rotation() + 10.0f);
             }
         }
         visualEntities[i]->setVisible(true);
@@ -586,10 +523,9 @@ void MainWindow::createVisualEntities()
     for(Entity* entity : backendEntities)
     {
         Obstacle* obs = dynamic_cast<Obstacle*>(entity);
-        if(!obs) continue;
+        if(!obs){ continue; }
 
         QString tipo = obs->getType().toLower();
-
         QGraphicsPixmapItem* sprite = new QGraphicsPixmapItem();
 
         float spriteW = 130.0f;
@@ -600,40 +536,22 @@ void MainWindow::createVisualEntities()
         if(tipo == "floating")
         {
             texture = pixObstacleSaw;
-
             spriteW = 105.0f;
             spriteH = 70.0f;
         }
         else if(tipo == "log")
         {
             texture = pixObstacleLog;
-
             spriteW = 130.0f;
             spriteH = 120.0f;
-        }
-        else if(tipo == "saw")
-        {
-            texture = pixObstacleRock;
-
-            spriteW = 100.0f;
-            spriteH = 67.0f;
         }
 
         float hitboxW = entity->getWidth();
         float hitboxH = entity->getHeight();
-
         float offsetX = (spriteW - hitboxW) * 0.5f;
         float offsetY = spriteH - hitboxH;
 
-        sprite->setPixmap(
-            texture.scaled(
-                spriteW,
-                spriteH,
-                Qt::IgnoreAspectRatio,
-                Qt::SmoothTransformation
-                )
-            );
-
+        sprite->setPixmap(texture.scaled(spriteW, spriteH, Qt::IgnoreAspectRatio, Qt::SmoothTransformation));
         sprite->setData(1, offsetX);
         sprite->setData(2, offsetY);
         sprite->setZValue(5);
@@ -641,23 +559,13 @@ void MainWindow::createVisualEntities()
         scene->addItem(sprite);
         visualEntities.push_back(sprite);
 
-        QGraphicsRectItem* physicsBox =
-            scene->addRect(
-                0,
-                0,
-                hitboxW,
-                hitboxH,
-                QPen(Qt::cyan, 2)
-                );
-
-        physicsBox->setBrush(QColor(0,255,255,40));
-        physicsBox->setZValue(500);
-
-        obstaclePhysicsDebug.push_back(physicsBox);
+        // QGraphicsRectItem* physicsBox = scene->addRect(0, 0, hitboxW, hitboxH, QPen(Qt::cyan, 2));
+        // physicsBox->setBrush(QColor(0,255,255,40));
+        // physicsBox->setZValue(20);
+        // obstaclePhysicsDebug.push_back(physicsBox);
     }
 
     const auto& backendItems = game->getItems();
-
     for(Item* item : backendItems)
     {
         if(!item) continue;
@@ -666,21 +574,12 @@ void MainWindow::createVisualEntities()
 
         float spriteW = 110.0f;
         float spriteH = 100.0f;
-
         float hitboxW = item->getWidth();
         float hitboxH = item->getHeight();
-
         float offsetX = (spriteW - hitboxW) * 0.5f;
         float offsetY = (spriteH - hitboxH) * 0.5f;
 
-        fruitSprite->setPixmap(
-            pixFruit.scaled(
-                spriteW,
-                spriteH,
-                Qt::IgnoreAspectRatio,
-                Qt::SmoothTransformation
-                )
-            );
+        fruitSprite->setPixmap(pixFruit.scaled( spriteW, spriteH, Qt::IgnoreAspectRatio, Qt::SmoothTransformation));
 
         fruitSprite->setData(1, offsetX);
         fruitSprite->setData(2, offsetY);
@@ -689,21 +588,13 @@ void MainWindow::createVisualEntities()
         scene->addItem(fruitSprite);
         visualItems.push_back(fruitSprite);
 
-        QGraphicsRectItem* physicsBox =
-            scene->addRect(
-                0,
-                0,
-                hitboxW,
-                hitboxH,
-                QPen(Qt::magenta, 2)
-                );
-
-        physicsBox->setBrush(QColor(255,0,255,40));
-        physicsBox->setZValue(700);
-
-        fruitPhysicsDebug.push_back(physicsBox);
+        // QGraphicsRectItem* physicsBox = scene->addRect( 0, 0, hitboxW, hitboxH, QPen(Qt::magenta, 2));
+        // physicsBox->setBrush(QColor(255,0,255,40));
+        // physicsBox->setZValue(20);
+        // fruitPhysicsDebug.push_back(physicsBox);
     }
 }
+
 void MainWindow::clearVisualEntities()
 {
     for(auto item : visualEntities)

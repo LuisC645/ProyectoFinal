@@ -9,6 +9,7 @@
 #include <QTimer>
 #include <vector>
 #include "game.h"
+#include "gamestate.h"
 
 class MainWindow : public QMainWindow {
     Q_OBJECT
@@ -18,9 +19,6 @@ private:
     QGraphicsScene* scene;
     QGraphicsView* view;
     QTimer* timer;
-
-    QGraphicsTextItem* hudText;
-    QGraphicsTextItem* gameOverText;
 
     std::vector<QGraphicsItem*> visualEntities;
     std::vector<QGraphicsItem*> visualItems;
@@ -40,11 +38,15 @@ private:
     QPixmap pixObstacleSaw;
     QPixmap pixFruit;
 
-    QGraphicsTextItem* menuTitleText;
-    QGraphicsTextItem* menuInfoText;
+    QGraphicsTextItem* hudText;
+
     QGraphicsRectItem* physicsHitboxDebug;
     QVector<QGraphicsRectItem*> obstaclePhysicsDebug;
     QVector<QGraphicsRectItem*> fruitPhysicsDebug;
+
+    LevelType selectedLevel = LevelType::LEVEL_1;
+    Difficulty selectedDifficulty = Difficulty::EASY;
+    QGraphicsTextItem* menuSelectionText;
 
     void createVisualEntities();
     void clearVisualEntities();

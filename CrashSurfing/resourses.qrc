@@ -11,5 +11,6 @@
         <file>resources/Rock.png</file>
         <file>resources/floating.png</file>
         <file>resources/enemy1.png</file>
+        <file>resources/Menu.png</file>
     </qresource>
 </RCC>

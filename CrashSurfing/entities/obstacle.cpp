@@ -11,7 +11,6 @@ Obstacle::Obstacle(QString type, QVector2D position)
 
     if (this->type == "log")
     {
-
         width = 35.0f;
         height = 35.0f;
     }
@@ -40,14 +39,8 @@ void Obstacle::update(float dt)
     if (type == "floating")
     {
         static float tiempoDron = 0.0f;
-
         tiempoDron += dt * 0.05f;
-
-        float nuevoY =
-            270.0f +
-            std::sin(tiempoDron + (position.x() * 0.005f))
-                * 90.0f;
-
+        float nuevoY = 270.0f + std::sin(tiempoDron + (position.x() * 0.005f)) * 90.0f;
         position.setY(nuevoY);
     }
 

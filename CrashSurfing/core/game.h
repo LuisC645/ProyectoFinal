@@ -1,19 +1,13 @@
 #ifndef GAME_H
 #define GAME_H
 
+#include "gamestate.h"
 #include <vector>
 
 class Entity;
 class Player;
 class Item;
 class Enemy;
-
-enum class GameStatus {
-    MENU,
-    PLAYING,
-    GAME_OVER,
-    LEVEL_COMPLETE
-};
 
 class Game {    
 private:

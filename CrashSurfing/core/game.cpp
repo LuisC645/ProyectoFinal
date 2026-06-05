@@ -21,16 +21,19 @@ Game::~Game()
 {
     delete player;
     delete enemy;
-    for (Entity* e : entities) { delete e; }
+    for (Entity* e : entities) {
+        delete e;
+    }
     entities.clear();
-    for (Item* i : items) { delete i; }
+    for (Item* i : items) {
+        delete i;
+    }
     items.clear();
 }
 
 void Game::update(float dt)
 {
-    // 1. Si no estamos jugando, no hacemos nada
-    if (status != GameStatus::PLAYING) return;
+    if (status != GameStatus::PLAYING){ return; }
 
     // Si el juego se congela un momento, evitamos que el 'dt' sea grande y crashee
     if (dt > 0.1f) dt = 0.1f;
@@ -44,7 +47,6 @@ void Game::update(float dt)
         if (player) {
             player->update(subDt);
         }
-
         for (Entity* e : entities) {
             if (e->isActive()) e->update(subDt);
         }
@@ -54,37 +56,29 @@ void Game::update(float dt)
 
         checkCollisions();
 
-        // D) Verificar estados críticos del juego en cada sub-paso
+        // Estados de jugador
         Player* p = dynamic_cast<Player*>(player);
         if (p) {
             if (p->getLives() <= 0) {
                 status = GameStatus::GAME_OVER;
-                return; // Salimos inmediatamente si muere
+                return;
             }
             if (p->getPosition().x() >= 25000.0f) {
                 status = GameStatus::LEVEL_COMPLETE;
-                return; // Salimos inmediatamente si gana
+                return;
             }
         }
 
         enemy->update(dt);
-        enemy->setPosition(
-            QVector2D(
-                player->getPosition().x() + 1000.0f,
-                enemy->getPosition().y()
-                )
-            );
+        enemy->setPosition(QVector2D(player->getPosition().x() + 1000.0f, enemy->getPosition().y()));
 
         if(enemy->canShoot())
         {
-            qDebug() << "DISPARO";
-
+            // qDebug() << "DISPARO";
             enemy->resetShootTimer();
-
             spawnProjectile();
         }
     }
-
 }
 
 void Game::reset()
@@ -103,9 +97,14 @@ void Game::reset()
 
 void Game::loadLevel()
 {
-    for (Entity* e : entities) delete e;
+    for (Entity* e : entities){
+        delete e;
+    }
     entities.clear();
-    for (Item* i : items) delete i;
+
+    for (Item* i : items){
+        delete i;
+    }
     items.clear();
 
     static bool seeded = false;
@@ -122,7 +121,7 @@ void Game::loadLevel()
         float spacing = 200.0f + (std::rand() % 150);
         currentX += spacing;
 
-        if (currentX >= endX) break;
+        if (currentX >= endX){ break; }
 
         int spawnChance = std::rand() % 100;
 
@@ -143,8 +142,7 @@ void Game::loadLevel()
 
 void Game::checkCollisions()
 {
-    if (!player || !player->isActive())
-        return;
+    if (!player || !player->isActive()){ return; }
 
     float pW = player->getWidth();
     float pH = player->getHeight();
@@ -154,8 +152,7 @@ void Game::checkCollisions()
 
     for (Entity* ent : entities)
     {
-        if (!ent->isActive())
-            continue;
+        if (!ent->isActive()){ continue; }
 
         float eX = ent->getPosition().x();
         float eY = ent->getPosition().y();
@@ -163,19 +160,14 @@ void Game::checkCollisions()
         float eW = ent->getWidth();
         float eH = ent->getHeight();
 
-        if (pX < eX + eW &&
-            pX + pW > eX &&
-            pY < eY + eH &&
-            pY + pH > eY)
-        {
+        if (pX < eX + eW && pX + pW > eX && pY < eY + eH && pY + pH > eY){
             player->onCollision(ent);
         }
     }
 
     for (Item* item : items)
     {
-        if (!item->isActive())
-            continue;
+        if (!item->isActive()){ continue; }
 
         float iX = item->getPosition().x();
         float iY = item->getPosition().y();
@@ -183,10 +175,7 @@ void Game::checkCollisions()
         float iW = item->getWidth();
         float iH = item->getHeight();
 
-        if (pX < iX + iW &&
-            pX + pW > iX &&
-            pY < iY + iH &&
-            pY + pH > iY)
+        if (pX < iX + iW && pX + pW > iX && pY < iY + iH && pY + pH > iY)
         {
             player->onCollision(item);
         }
@@ -195,8 +184,7 @@ void Game::checkCollisions()
 
 void Game::spawnProjectile()
 {
-    if(!enemy || !player)
-        return;
+    if(!enemy || !player){ return; }
 
     float playerX = player->getPosition().x();
     float playerY = player->getPosition().y();

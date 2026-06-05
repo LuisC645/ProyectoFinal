@@ -10,6 +10,7 @@ CONFIG += c++17
 
 SOURCES += \
     core/game.cpp \
+    core/uimanager.cpp \
     core\main.cpp \
     core\mainwindow.cpp \
     entities/enemy.cpp \
@@ -20,6 +21,8 @@ SOURCES += \
 
 HEADERS += \
     core/game.h \
+    core/gamestate.h \
+    core/uimanager.h \
     core\mainwindow.h \
     entities/enemy.h \
     entities/entity.h \
