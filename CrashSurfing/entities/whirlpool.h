@@ -20,7 +20,7 @@ public:
     void setDeathRadius(float r);
     float getDeathRadius() const;
 
-    void applyForce(PlayerLevel2* player);
+    void applyForce(PlayerLevel2* player,float dt);
 
     bool isInsideDeathZone(PlayerLevel2* player);
 

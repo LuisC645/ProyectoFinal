@@ -9,6 +9,7 @@
 #include <QGraphicsView>
 #include <QKeyEvent>
 #include <QPen>
+#include <QDebug>
 #include <QTimer>
 #include "../entities/playerlevel2.h"
 
@@ -83,9 +84,18 @@ void MainWindowLevel2::setupScene()
 void MainWindowLevel2::setupView()
 {
     view = new QGraphicsView(scene, this);
+
     view->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     view->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+
+    // Evita que el QGraphicsView capture las flechas
+    view->setFocusPolicy(Qt::NoFocus);
+
     setCentralWidget(view);
+
+    // La ventana principal recibe el teclado
+    setFocusPolicy(Qt::StrongFocus);
+    setFocus();
 }
 
 void MainWindowLevel2::setupWhirlpool()
@@ -149,7 +159,10 @@ void MainWindowLevel2::setupTimer()
 
 void MainWindowLevel2::keyPressEvent(QKeyEvent *event)
 {
+    qDebug() << "KEY PRESS:" << event->key();
+
     PlayerLevel2 *player = game->getPlayer();
+
     if (!player)
         return;
 
@@ -158,15 +171,19 @@ void MainWindowLevel2::keyPressEvent(QKeyEvent *event)
     case Qt::Key_Up:
         player->moveUp();
         break;
+
     case Qt::Key_Down:
         player->moveDown();
         break;
+
     case Qt::Key_Left:
         player->moveLeft();
         break;
+
     case Qt::Key_Right:
         player->moveRight();
         break;
+
     default:
         QMainWindow::keyPressEvent(event);
         break;
@@ -175,7 +192,10 @@ void MainWindowLevel2::keyPressEvent(QKeyEvent *event)
 
 void MainWindowLevel2::keyReleaseEvent(QKeyEvent *event)
 {
+    qDebug() << "KEY RELEASE:" << event->key();
+
     PlayerLevel2 *player = game->getPlayer();
+
     if (!player)
         return;
 
@@ -185,16 +205,17 @@ void MainWindowLevel2::keyReleaseEvent(QKeyEvent *event)
     case Qt::Key_Down:
         player->stopVertical();
         break;
+
     case Qt::Key_Left:
     case Qt::Key_Right:
         player->stopHorizontal();
         break;
+
     default:
         QMainWindow::keyReleaseEvent(event);
         break;
     }
 }
-
 void MainWindowLevel2::updateGameLoop()
 {
     game->update(DELTA_TIME);
@@ -211,10 +232,19 @@ void MainWindowLevel2::updateGameLoop()
 void MainWindowLevel2::updatePlayerVisual()
 {
     PlayerLevel2 *player = game->getPlayer();
+
     if (!player)
         return;
 
-    playerVisual->setPos(player->getPosition().x(), player->getPosition().y());
+    qDebug()
+        << "POS:"
+        << player->getPosition().x()
+        << player->getPosition().y();
+
+    playerVisual->setPos(
+        player->getPosition().x(),
+        player->getPosition().y()
+        );
 }
 
 void MainWindowLevel2::updateHud()

@@ -21,9 +21,9 @@ void GameLevel2::update(float dt)
     if(status != GameLevel2Status::PLAYING)
         return;
 
-    player->update(dt);
+    whirlpool.applyForce(player, dt);
 
-    whirlpool.applyForce(player);
+    player->update(dt);
 
     survivalTimer += dt;
 
