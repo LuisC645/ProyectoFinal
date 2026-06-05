@@ -3,7 +3,6 @@
 
 #include "entity.h"
 
-// Falta por definir (pero si no no compila xd)
 class Agent;
 
 class Enemy : public Entity
@@ -12,8 +11,16 @@ private:
 
     // Puntero al agente
     Agent* agent;
-    // Optimización de memoria
     unsigned short health;
+
+    float shootTimer;
+    float shootCooldown;
+
+    int misses;
+
+    float throwForce;
+
+    float phase;
 
 public:
     Enemy();
@@ -27,6 +34,9 @@ public:
 
     unsigned short getHealth() const { return health; }
     void setHealth(unsigned short h) { health = h; }
+    bool canShoot() const;
+    void resetShootTimer();
+
 };
 
 #endif // ENEMY_H

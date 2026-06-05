@@ -1,0 +1,20 @@
+<RCC>
+    <qresource prefix="/new/prefix1">
+        <file>resources/bg1.png</file>
+        <file>resources/bg2.png</file>
+        <file>resources/bg3.png</file>
+        <file>resources/crash_init.png</file>
+        <file>resources/crash_jump.png</file>
+        <file>resources/crash_gameOver.png</file>
+        <file>resources/TNT.png</file>
+        <file>resources/fruit.png</file>
+        <file>resources/Rock.png</file>
+        <file>resources/floating.png</file>
+        <file>resources/enemy1.png</file>
+        <file>resources/Menu.png</file>
+        <file>resources/inGame.mp3</file>
+        <file>resources/MainMenu.mp3</file>
+        <file>resources/fruit.mp3</file>
+        <file>resources/hit.mp3</file>
+    </qresource>
+</RCC>

@@ -2,26 +2,22 @@
 #define OBSTACLE_H
 
 #include "entity.h"
+#include <QString>
+#include <QVector2D>
 
-class Obstacle : public Entity
-{
+class Obstacle : public Entity {
 private:
-    unsigned short damage;
+    QString type;
+    float initialY;
 
 public:
-    Obstacle();
-    ~Obstacle();
+    Obstacle(QString type, QVector2D position);
+    virtual ~Obstacle() override = default;
 
-    void update(float dt) override;
-    void onCollision(Entity* e) override;
+    virtual void update(float dt) override;
+    virtual void onCollision(Entity* other) override;
 
-    // Getters - Setters
-    unsigned short getDamage() const {
-        return damage;
-    }
-    void setDamage(unsigned short d) {
-        damage = d;
-    }
+    QString getType() const { return type; }
 };
 
 #endif // OBSTACLE_H
