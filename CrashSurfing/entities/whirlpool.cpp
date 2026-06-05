@@ -105,10 +105,10 @@ void Whirlpool::applyForce(PlayerLevel2* player, float dt)
         radial * radialStrength +
         tangential * tangentialStrength;
 
-    // ==========================
-    // ECUACION DE MOVIMIENTO
+
+    // Ec mov
     // v = v + a·dt
-    // ==========================
+
 
     QVector2D newVelocity =
         player->getVelocity()
