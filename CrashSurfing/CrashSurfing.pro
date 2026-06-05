@@ -11,6 +11,7 @@ CONFIG += c++17
 SOURCES += \
     core/game.cpp \
     core/gamelevel2.cpp \
+    core/mainwindowlevel2.cpp \
     core\main.cpp \
     core\mainwindow.cpp \
     entities/enemy.cpp \
@@ -25,6 +26,7 @@ HEADERS += \
     core/game.h \
     core/game_state.h \
     core/gamelevel2.h \
+    core/mainwindowlevel2.h \
     core\mainwindow.h \
     entities/enemy.h \
     entities/entity.h \

@@ -1,17 +1,14 @@
-#include "mainwindow.h"
 #include <QApplication>
-#include <QDebug>
+
+#include "mainwindowlevel2.h"
 
 int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
-    qDebug() << "ok 1";
 
-    MainWindow w;
-    qDebug() << "ok 2";
+    MainWindowLevel2 w;
 
     w.show();
-    qDebug() << "ok 3";
 
     return a.exec();
 }

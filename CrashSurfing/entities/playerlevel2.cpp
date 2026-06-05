@@ -17,7 +17,7 @@ PlayerLevel2::PlayerLevel2()
     collectedFruits = 0;
 
     arenaWidth = 1600.0f;
-    arenaHeight = 900.0f;
+    arenaHeight = 600.0f;
 
     active = true;
 }

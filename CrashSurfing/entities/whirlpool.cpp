@@ -3,7 +3,7 @@
 
 Whirlpool::Whirlpool()
 {
-    center = QVector2D(800.0f, 450.0f);
+    center = QVector2D(800.0f, 300.0f);
 
     force = 0.3f;
 
