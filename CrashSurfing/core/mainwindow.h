@@ -10,6 +10,7 @@
 #include <vector>
 #include "game.h"
 #include "gamestate.h"
+#include "audiomanager.h"
 
 class MainWindow : public QMainWindow {
     Q_OBJECT
@@ -26,6 +27,8 @@ private:
     QGraphicsPixmapItem* visualEnemy1;
 
     QGraphicsRectItem* enemyDebugRect;
+
+    AudioManager* audio;
 
     QPixmap pixPlayerRun;
     QPixmap pixPlayerJump;

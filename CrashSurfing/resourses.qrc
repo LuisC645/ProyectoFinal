@@ -12,5 +12,8 @@
         <file>resources/floating.png</file>
         <file>resources/enemy1.png</file>
         <file>resources/Menu.png</file>
+        <file>resources/inGame.mp3</file>
+        <file>resources/MainMenu.mp3</file>
+        <file>resources/fruit.mp3</file>
     </qresource>
 </RCC>

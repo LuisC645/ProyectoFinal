@@ -13,6 +13,7 @@
 #include "../entities/enemy.h"
 
 #include "../core/uimanager.h"
+#include "../core/audiomanager.h"
 UIManager* ui;
 
 
@@ -98,6 +99,9 @@ MainWindow::MainWindow(QWidget *parent)
     setFixedSize(1600, 600);
     setWindowTitle("Crash Surfing");
 
+    // Audio
+    audio = new AudioManager();
+    audio->playMenuMusic();
 
     // 3. CREAR JUGADOR
     visualPlayer = new QGraphicsPixmapItem();

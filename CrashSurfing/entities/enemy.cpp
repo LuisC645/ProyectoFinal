@@ -3,13 +3,10 @@
 Enemy::Enemy() : Entity()
 {
     agent = nullptr;
-
     health = 1;
-
     active = true;
 
     position = QVector2D(1100.0f,200.0f);
-
     velocity = QVector2D(0.0f,0.0f);
 
     width = 60.0f;
