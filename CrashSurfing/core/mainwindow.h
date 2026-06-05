@@ -70,6 +70,7 @@ protected:
 
 private slots:
     void updateGameLoop();
+    void updateLevel1(Player* p);
 
 public:
     MainWindow(QWidget *parent = nullptr);

@@ -112,8 +112,19 @@ void UIManager::showGameOver(float playerX)
 
 void UIManager::showLevelComplete(float playerX)
 {
-    levelCompleteText->setPos(playerX + 150, 180);
-    levelCompleteText->setVisible(true);
+    overlay -> setRect(playerX - 200, 0, 1600, 600);
+    overlay -> setVisible(true);
+    overlay -> setZValue(50);
+
+    QFont selectorFontWin;
+    selectorFontWin.setPointSize(30);
+    selectorFontWin.setBold(true);
+
+    levelCompleteText -> setFont(selectorFontWin);
+    levelCompleteText -> setPos(playerX + 150, 180);
+    levelCompleteText -> setVisible(true);
+    levelCompleteText -> setVisible(true);
+    levelCompleteText -> setZValue(60);
 }
 
 void UIManager::hideMenu()

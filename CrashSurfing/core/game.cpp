@@ -15,6 +15,7 @@ Game::Game()
     enemy = new Enemy();
     score = 0;
     status = GameStatus::MENU;
+    difficult = Difficulty::EASY;
 }
 
 Game::~Game()
@@ -162,6 +163,7 @@ void Game::checkCollisions()
 
         if (pX < eX + eW && pX + pW > eX && pY < eY + eH && pY + pH > eY){
             player->onCollision(ent);
+            playerHit = true;
         }
     }
 
@@ -178,13 +180,15 @@ void Game::checkCollisions()
         if (pX < iX + iW && pX + pW > iX && pY < iY + iH && pY + pH > iY)
         {
             player->onCollision(item);
+            fruitCollected = true;
         }
     }
 }
 
 void Game::spawnProjectile()
 {
-    if(!enemy || !player){ return; }
+    if(!enemy || !player)
+        return;
 
     float playerX = player->getPosition().x();
     float playerY = player->getPosition().y();
@@ -195,38 +199,97 @@ void Game::spawnProjectile()
     float enemyX = enemy->getPosition().x();
     float enemyY = enemy->getPosition().y();
 
+    float shootProbability;
+    float predictionFactor;
+    float aimErrorRange;
+
+    qDebug() << (difficult == Difficulty::EASY ? "EASY" : "HARD");
+
+    if(difficult == Difficulty::EASY)
+    {
+        shootProbability = 35.0f;
+        predictionFactor = 0.5f;
+        aimErrorRange = 120.0f;
+        qDebug() << "Easy";
+    }
+    else
+    {
+        shootProbability = 75.0f;
+        predictionFactor = 1.0f;
+        aimErrorRange = 40.0f;
+        qDebug() << "Hard";
+    }
+
+    int prob = rand() % 100;
+
+    if(prob > shootProbability){ return; }
+
     float distance = enemyX - playerX;
     float predictionTime = distance / 500.0f;
 
     if(predictionTime < 0.4f){ predictionTime = 0.4f; }
+
     if(predictionTime > 1.5f){ predictionTime = 1.5f; }
 
-    float futureX = playerX + playerVX * predictionTime;
-    float futureY =  playerY + playerVY * predictionTime;
+    float futureX = playerX + playerVX * predictionTime * predictionFactor;
 
-    float threat = 0.0f;
-    if(std::abs(playerVY) < 100.0f){ threat += 30.0f; }
-    if(playerY > 180.0f && playerY < 320.0f){ threat += 40.0f; }
-    if(distance < 1200.0f){ threat += 30.0f; }
+    float futureY = playerY + playerVY * predictionTime * predictionFactor;
 
-    int chance = rand() % 100;
-
-    if(chance > threat){ return; }
-
-    Obstacle* projectile = new Obstacle("saw", QVector2D(enemyX, enemyY));
+    Obstacle* projectile = new Obstacle( "saw", QVector2D(enemyX, enemyY));
 
     float dx = enemyX - futureX;
     float vx = -450.0f;
-    float vy = -180.0f  - (dx * 0.05f) + (futureY - enemyY) * 0.25f;
 
-    float aimError = (rand() % 60) - 30;
+    float vy = -180.0f - (dx * 0.05f) + (futureY - enemyY) * 0.25f;
+
+    float aimError = ((float)rand() / RAND_MAX) * (aimErrorRange * 2.0f) - aimErrorRange;
+
     vy += aimError;
 
     if(vy < -450.0f){ vy = -450.0f; }
-
     if(vy > -120.0f){ vy = -120.0f; }
 
-    // DISPARO
     projectile->setVelocity(QVector2D(vx, vy));
     entities.push_back(projectile);
+}
+
+bool Game::consumeFruitCollected()
+{
+    if(fruitCollected)
+    {
+        fruitCollected = false;
+        return true;
+    }
+
+    return false;
+}
+
+bool Game::consumePlayerHit()
+{
+    if(playerHit)
+    {
+        playerHit = false;
+        return true;
+    }
+
+    return false;
+}
+
+void Game::setDifficulty(Difficulty difficulty)
+{
+    this->difficult = difficulty;
+
+    if(difficulty == Difficulty::EASY){ fruits2Win = 15; }
+    else{ fruits2Win = 20; }
+
+    qDebug() << "Game difficulty:" << (difficulty == Difficulty::EASY ? "EASY" : "HARD");
+}
+
+int Game::getFruits2Win() const
+{
+    return fruits2Win;
+}
+
+Difficulty Game::getDifficult() const {
+    return difficult;
 }

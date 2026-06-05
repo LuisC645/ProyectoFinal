@@ -17,8 +17,7 @@
 UIManager* ui;
 
 
-MainWindow::MainWindow(QWidget *parent)
-    : QMainWindow(parent)
+MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
 {
     // assets
     // Crash
@@ -173,11 +172,14 @@ void MainWindow::keyPressEvent(QKeyEvent *event)
 
         if(event->key() == Qt::Key_Left || event->key() == Qt::Key_Right)
         {
-            selectedDifficulty =selectedDifficulty == Difficulty::EASY ? Difficulty::HARD : Difficulty::EASY;
+            selectedDifficulty = selectedDifficulty == Difficulty::EASY ? Difficulty::HARD : Difficulty::EASY;
             return;
         }
         if(event->key() == Qt::Key_Return || event->key() == Qt::Key_Enter)
         {
+            game->setDifficulty(selectedDifficulty);
+            audio->stopMenuMusic();
+            audio->playGameMusic();
             game->setStatus(GameStatus::PLAYING);
             ui->hideMenu();
         }
@@ -222,6 +224,8 @@ void MainWindow::keyPressEvent(QKeyEvent *event)
         }
         if(event->key() == Qt::Key_M)
         {
+            audio->stopGameMusic();
+            audio->playMenuMusic();
             game->setStatus(GameStatus::MENU);
             ui->hideAll();
             return;
@@ -265,9 +269,21 @@ void MainWindow::updateGameLoop()
 
     GameStatus currentStatus = game->getStatus();
 
+    if(p->getCollectedFruits() >= game->getFruits2Win())
+    {
+        game->setStatus(GameStatus::LEVEL_COMPLETE);
+    }
     if(currentStatus == GameStatus::PLAYING)
     {
         game->update(0.016f);
+    }
+    if(game->consumeFruitCollected())
+    {
+        audio->playFruitSound();
+    }
+    if(game->consumePlayerHit())
+    {
+        audio->playHitSound();
     }
     if(currentStatus == GameStatus::PAUSED)
     {
@@ -282,7 +298,6 @@ void MainWindow::updateGameLoop()
         view->centerOn(0, 0);
         return;
     }
-
     if(currentStatus == GameStatus::GAME_OVER)
     {
         visualPlayer->setPixmap(pixPlayerGameOver.scaled(250, 200,  Qt::IgnoreAspectRatio, Qt::SmoothTransformation));
@@ -290,7 +305,6 @@ void MainWindow::updateGameLoop()
         ui->showGameOver(playerX);
         return;
     }
-
     if(currentStatus == GameStatus::LEVEL_COMPLETE)
     {
         ui->hideAll();
@@ -298,10 +312,139 @@ void MainWindow::updateGameLoop()
         return;
     }
 
+    // Update game
+    if(selectedLevel == LevelType::LEVEL_1){ updateLevel1(p); }
+    else { updateLevel1(p); }
+
+}
+
+void MainWindow::createVisualEntities()
+{
+    visualEntities.clear();
+    visualItems.clear();
+    obstaclePhysicsDebug.clear();
+    fruitPhysicsDebug.clear();
+
+    const auto& backendEntities = game->getEntities();
+
+    for(Entity* entity : backendEntities)
+    {
+        Obstacle* obs = dynamic_cast<Obstacle*>(entity);
+        if(!obs){ continue; }
+
+        QString tipo = obs->getType().toLower();
+        QGraphicsPixmapItem* sprite = new QGraphicsPixmapItem();
+
+        float spriteW = 130.0f;
+        float spriteH = 120.0f;
+
+        QPixmap texture;
+
+        if(tipo == "floating")
+        {
+            texture = pixObstacleSaw;
+            spriteW = 105.0f;
+            spriteH = 70.0f;
+        }
+        else if(tipo == "log")
+        {
+            texture = pixObstacleLog;
+            spriteW = 130.0f;
+            spriteH = 120.0f;
+        }
+
+        float hitboxW = entity->getWidth();
+        float hitboxH = entity->getHeight();
+        float offsetX = (spriteW - hitboxW) * 0.5f;
+        float offsetY = spriteH - hitboxH;
+
+        sprite->setPixmap(texture.scaled(spriteW, spriteH, Qt::IgnoreAspectRatio, Qt::SmoothTransformation));
+        sprite->setData(1, offsetX);
+        sprite->setData(2, offsetY);
+        sprite->setZValue(5);
+
+        scene->addItem(sprite);
+        visualEntities.push_back(sprite);
+
+        // QGraphicsRectItem* physicsBox = scene->addRect(0, 0, hitboxW, hitboxH, QPen(Qt::cyan, 2));
+        // physicsBox->setBrush(QColor(0,255,255,40));
+        // physicsBox->setZValue(20);
+        // obstaclePhysicsDebug.push_back(physicsBox);
+    }
+
+    const auto& backendItems = game->getItems();
+    for(Item* item : backendItems)
+    {
+        if(!item) continue;
+
+        QGraphicsPixmapItem* fruitSprite = new QGraphicsPixmapItem();
+
+        float spriteW = 110.0f;
+        float spriteH = 100.0f;
+        float hitboxW = item->getWidth();
+        float hitboxH = item->getHeight();
+        float offsetX = (spriteW - hitboxW) * 0.5f;
+        float offsetY = (spriteH - hitboxH) * 0.5f;
+
+        fruitSprite->setPixmap(pixFruit.scaled( spriteW, spriteH, Qt::IgnoreAspectRatio, Qt::SmoothTransformation));
+
+        fruitSprite->setData(1, offsetX);
+        fruitSprite->setData(2, offsetY);
+        fruitSprite->setZValue(8);
+
+        scene->addItem(fruitSprite);
+        visualItems.push_back(fruitSprite);
+
+        // QGraphicsRectItem* physicsBox = scene->addRect( 0, 0, hitboxW, hitboxH, QPen(Qt::magenta, 2));
+        // physicsBox->setBrush(QColor(255,0,255,40));
+        // physicsBox->setZValue(20);
+        // fruitPhysicsDebug.push_back(physicsBox);
+    }
+}
+
+void MainWindow::clearVisualEntities()
+{
+    for(auto item : visualEntities)
+    {
+        scene->removeItem(item);
+        delete item;
+    }
+
+    for(auto item : visualItems)
+    {
+        scene->removeItem(item);
+        delete item;
+    }
+
+    for(auto item : obstaclePhysicsDebug)
+    {
+        scene->removeItem(item);
+        delete item;
+    }
+
+    for(auto item : fruitPhysicsDebug)
+    {
+        scene->removeItem(item);
+        delete item;
+    }
+
+    visualEntities.clear();
+    visualItems.clear();
+    obstaclePhysicsDebug.clear();
+    fruitPhysicsDebug.clear();
+}
+
+void MainWindow::updateLevel1(Player* p)
+{
+    GameStatus currentStatus = game->getStatus();
+
+    float playerX = p->getPosition().x();
+    float playerY = p->getPosition().y();
+
     float currentCrashX = playerX;
     float currentCrashY = playerY + 130.0f;
-    float cameraLeft = playerX - 200.0f;
 
+    float cameraLeft = playerX - 200.0f;
     // physicsHitboxDebug->setRect(playerX - playerW * 0.5f, playerY + 155.0f - playerH, playerW, playerH);
 
     float offset1 = fmod(cameraLeft * 0.15f, bgLayer1Width);
@@ -314,7 +457,13 @@ void MainWindow::updateGameLoop()
     selectorFont.setPointSize(20);
     selectorFont.setBold(true);
 
-    hudText->setPlainText(QString("VIDAS: %1 | WUMPAS: %2") .arg(p->getLives()) .arg(p->getCollectedFruits()));
+    QString difficultyText =  game->getDifficult() == Difficulty::EASY ? "FACIL" : "DIFICIL";
+
+    hudText->setPlainText(QString("VIDAS: %1 | WUMPAS: %2/%3 | Dificultad: %4")
+                              .arg(p->getLives())
+                              .arg(p->getCollectedFruits())
+                              .arg(game->getFruits2Win())
+                              .arg(difficultyText));
     hudText->setPos(cameraLeft + 50.0f, 30.0f);
     hudText->setFont(selectorFont);
 
@@ -513,120 +662,5 @@ void MainWindow::updateGameLoop()
 
     // 9. CENTRAR CÁMARA
     view->centerOn(cameraLeft + 800, 300);
-}
 
-void MainWindow::createVisualEntities()
-{
-    visualEntities.clear();
-    visualItems.clear();
-    obstaclePhysicsDebug.clear();
-    fruitPhysicsDebug.clear();
-
-    const auto& backendEntities = game->getEntities();
-
-    for(Entity* entity : backendEntities)
-    {
-        Obstacle* obs = dynamic_cast<Obstacle*>(entity);
-        if(!obs){ continue; }
-
-        QString tipo = obs->getType().toLower();
-        QGraphicsPixmapItem* sprite = new QGraphicsPixmapItem();
-
-        float spriteW = 130.0f;
-        float spriteH = 120.0f;
-
-        QPixmap texture;
-
-        if(tipo == "floating")
-        {
-            texture = pixObstacleSaw;
-            spriteW = 105.0f;
-            spriteH = 70.0f;
-        }
-        else if(tipo == "log")
-        {
-            texture = pixObstacleLog;
-            spriteW = 130.0f;
-            spriteH = 120.0f;
-        }
-
-        float hitboxW = entity->getWidth();
-        float hitboxH = entity->getHeight();
-        float offsetX = (spriteW - hitboxW) * 0.5f;
-        float offsetY = spriteH - hitboxH;
-
-        sprite->setPixmap(texture.scaled(spriteW, spriteH, Qt::IgnoreAspectRatio, Qt::SmoothTransformation));
-        sprite->setData(1, offsetX);
-        sprite->setData(2, offsetY);
-        sprite->setZValue(5);
-
-        scene->addItem(sprite);
-        visualEntities.push_back(sprite);
-
-        // QGraphicsRectItem* physicsBox = scene->addRect(0, 0, hitboxW, hitboxH, QPen(Qt::cyan, 2));
-        // physicsBox->setBrush(QColor(0,255,255,40));
-        // physicsBox->setZValue(20);
-        // obstaclePhysicsDebug.push_back(physicsBox);
-    }
-
-    const auto& backendItems = game->getItems();
-    for(Item* item : backendItems)
-    {
-        if(!item) continue;
-
-        QGraphicsPixmapItem* fruitSprite = new QGraphicsPixmapItem();
-
-        float spriteW = 110.0f;
-        float spriteH = 100.0f;
-        float hitboxW = item->getWidth();
-        float hitboxH = item->getHeight();
-        float offsetX = (spriteW - hitboxW) * 0.5f;
-        float offsetY = (spriteH - hitboxH) * 0.5f;
-
-        fruitSprite->setPixmap(pixFruit.scaled( spriteW, spriteH, Qt::IgnoreAspectRatio, Qt::SmoothTransformation));
-
-        fruitSprite->setData(1, offsetX);
-        fruitSprite->setData(2, offsetY);
-        fruitSprite->setZValue(8);
-
-        scene->addItem(fruitSprite);
-        visualItems.push_back(fruitSprite);
-
-        // QGraphicsRectItem* physicsBox = scene->addRect( 0, 0, hitboxW, hitboxH, QPen(Qt::magenta, 2));
-        // physicsBox->setBrush(QColor(255,0,255,40));
-        // physicsBox->setZValue(20);
-        // fruitPhysicsDebug.push_back(physicsBox);
-    }
-}
-
-void MainWindow::clearVisualEntities()
-{
-    for(auto item : visualEntities)
-    {
-        scene->removeItem(item);
-        delete item;
-    }
-
-    for(auto item : visualItems)
-    {
-        scene->removeItem(item);
-        delete item;
-    }
-
-    for(auto item : obstaclePhysicsDebug)
-    {
-        scene->removeItem(item);
-        delete item;
-    }
-
-    for(auto item : fruitPhysicsDebug)
-    {
-        scene->removeItem(item);
-        delete item;
-    }
-
-    visualEntities.clear();
-    visualItems.clear();
-    obstaclePhysicsDebug.clear();
-    fruitPhysicsDebug.clear();
 }

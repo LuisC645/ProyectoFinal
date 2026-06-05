@@ -47,9 +47,9 @@ void Obstacle::update(float dt)
     else if(type == "saw" || type == "enemy_saw")
     {
 
-        qDebug() << "TIPO:" << type;
-        qDebug() << "VX:" << velocity.x();
-        qDebug() << "VY:" << velocity.y();
+        //qDebug() << "TIPO:" << type;
+        //qDebug() << "VX:" << velocity.x();
+        //qDebug() << "VY:" << velocity.y();
 
         const float GRAVEDAD = 980.0f;
         const float SUELO_Y = 350.0f;

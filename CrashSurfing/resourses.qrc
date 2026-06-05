@@ -15,5 +15,6 @@
         <file>resources/inGame.mp3</file>
         <file>resources/MainMenu.mp3</file>
         <file>resources/fruit.mp3</file>
+        <file>resources/hit.mp3</file>
     </qresource>
 </RCC>

@@ -18,6 +18,11 @@ private:
 
     int score;
     GameStatus status;
+    Difficulty difficult = Difficulty::EASY;
+    int fruits2Win = 20;
+
+    bool fruitCollected = false;
+    bool playerHit = false;
 
 public:
     Game();
@@ -40,6 +45,15 @@ public:
     Enemy* getEnemy() const { return enemy; }
     const std::vector<Entity*>& getEntities() const { return entities; }
     const std::vector<Item*>& getItems() const { return items; }
+
+    bool consumeFruitCollected();
+    bool consumePlayerHit();
+
+    void setDifficulty(Difficulty difficulty);
+    int getFruits2Win() const;
+
+    Difficulty getDifficult() const;
+
 };
 
 #endif // GAME_H
