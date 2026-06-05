@@ -2,6 +2,7 @@
 #define MAINWINDOWLEVEL2_H
 
 #include <QMainWindow>
+#include <vector>
 
 class QGraphicsScene;
 class QGraphicsView;
@@ -35,10 +36,20 @@ private:
     void setupWhirlpool();
     void setupDeathZone();
     void setupPlayer();
+    void setupEnemy2();
+    void setupFruits();
+    void setupObstacles();
     void setupHud();
     void setupStateText();
     void setupTimer();
+
+    void rebuildProjectilesIfNeeded();
+
     void updatePlayerVisual();
+    void updateEnemy2Visual();
+    void updateFruitVisuals();
+    void updateObstacleVisuals();
+    void updateProjectileVisuals();
     void updateHud();
     void updateStateText();
 
@@ -47,23 +58,20 @@ private:
 
     QGraphicsScene *scene = nullptr;
     QGraphicsView *view = nullptr;
-
     QTimer *timer = nullptr;
 
-    // Crash
     QGraphicsRectItem *playerVisual = nullptr;
+    QGraphicsRectItem *enemy2Visual = nullptr;
 
-    // Remolino
     QGraphicsEllipseItem *whirlpoolVisual = nullptr;
-
-    // Centro
     QGraphicsEllipseItem *deathZoneVisual = nullptr;
 
-    // HUD
     QGraphicsTextItem *hudText = nullptr;
-
-    // Mensajes
     QGraphicsTextItem *stateText = nullptr;
+
+    std::vector<QGraphicsEllipseItem*> fruitVisuals;
+    std::vector<QGraphicsRectItem*> obstacleVisuals;
+    std::vector<QGraphicsRectItem*> projectileVisuals;
 };
 
 #endif

@@ -15,6 +15,7 @@ SOURCES += \
     core\main.cpp \
     core\mainwindow.cpp \
     entities/enemy.cpp \
+    entities/enemy2.cpp \
     entities/entity.cpp \
     entities/item.cpp \
     entities/obstacle.cpp \
@@ -29,6 +30,7 @@ HEADERS += \
     core/mainwindowlevel2.h \
     core\mainwindow.h \
     entities/enemy.h \
+    entities/enemy2.h \
     entities/entity.h \
     entities/item.h \
     entities/obstacle.h \

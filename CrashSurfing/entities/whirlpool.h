@@ -8,7 +8,6 @@ class PlayerLevel2;
 class Whirlpool
 {
 public:
-
     Whirlpool();
 
     void setCenter(const QVector2D& c);
@@ -20,16 +19,18 @@ public:
     void setDeathRadius(float r);
     float getDeathRadius() const;
 
-    void applyForce(PlayerLevel2* player,float dt);
+    // Nueva arquitectura:
+    // calcula la contribución de velocidad del remolino en este frame
+    QVector2D computeFrameVelocity(const PlayerLevel2* player, float dt) const;
 
-    bool isInsideDeathZone(PlayerLevel2* player);
+    // Magnitud radial útil para GameLevel2 / IA
+    float getForceMagnitude(float distance) const;
+
+    bool isInsideDeathZone(PlayerLevel2* player) const;
 
 private:
-
     QVector2D center;
-
     float force;
-
     float deathRadius;
 };
 

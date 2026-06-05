@@ -7,12 +7,12 @@ class PlayerLevel2 : public Entity
 {
 public:
     PlayerLevel2();
-    ~PlayerLevel2();
+    ~PlayerLevel2() override;
 
     void update(float dt) override;
     void onCollision(Entity* e) override;
 
-    // Movimiento
+    // Movimiento por input
     void moveUp();
     void moveDown();
     void moveLeft();
@@ -21,24 +21,48 @@ public:
     void stopHorizontal();
     void stopVertical();
 
-    // Vidas
+    // Movimiento externo por frame
+    void setExternalVelocity(const QVector2D& externalVel);
+
+    // Estado del jugador
+    void takeDamage();
     void loseLife();
-    int getLives() const;
-
-    // Frutas
+    void startInvincibility();
+    void applySlow();
     void collectFruit();
-    int getCollectedFruits() const;
-
-    // Estado
     void reset();
 
-private:
+    // Getters
+    int getLives() const;
+    int getCollectedFruits() const;
+    bool getIsInvincible() const;
+    bool getIsSlowed() const;
+    float getWhirlpoolResistance() const;
+    float getCurrentSpeed() const;
 
-    float speed;
+private:
+    void updateTimers(float dt);
+    void updateCurrentSpeed();
+    void clampToArena();
+
+private:
+    QVector2D inputDirection;
+    QVector2D externalVelocity;
+
+    float baseSpeed;
+    float currentSpeed;
 
     int lives;
-
     int collectedFruits;
+
+    bool isInvincible;
+    float invincibilityTimer;
+    float invincibilityDuration;
+
+    bool isSlowed;
+    float slowTimer;
+    float slowDuration;
+    float slowFactor;
 
     float arenaWidth;
     float arenaHeight;

@@ -1,13 +1,28 @@
 #include "whirlpool.h"
-#include "../entities/playerlevel2.h"
+#include "playerlevel2.h"
+
+#include <QtMath>
+
+namespace
+{
+constexpr float DEFAULT_CENTER_X = 800.0f;
+constexpr float DEFAULT_CENTER_Y = 300.0f;
+
+constexpr float DEFAULT_FORCE_SCALE = 1.35f;
+constexpr float DEFAULT_DEATH_RADIUS = 50.0f;
+
+// Más alto para que el empuje externo no quede capado
+constexpr float MAX_EXTERNAL_SPEED = 700.0f;
+
+// Poco giro, mucha succión
+constexpr float TANGENTIAL_FACTOR = 0.14f;
+}
 
 Whirlpool::Whirlpool()
 {
-    center = QVector2D(800.0f, 300.0f);
-
-    force = 0.3f;
-
-    deathRadius = 50.0f;
+    center = QVector2D(DEFAULT_CENTER_X, DEFAULT_CENTER_Y);
+    force = DEFAULT_FORCE_SCALE;
+    deathRadius = DEFAULT_DEATH_RADIUS;
 }
 
 void Whirlpool::setCenter(const QVector2D& c)
@@ -40,102 +55,95 @@ float Whirlpool::getDeathRadius() const
     return deathRadius;
 }
 
-void Whirlpool::applyForce(PlayerLevel2* player, float dt)
+QVector2D Whirlpool::computeFrameVelocity(const PlayerLevel2* player, float dt) const
 {
-    if(!player)
-        return;
+    if (!player || !player->isActive())
+        return QVector2D(0.0f, 0.0f);
 
-    QVector2D r =
-        center -
-        player->getPosition();
+    QVector2D toCenter = center - player->getPosition();
+    const float distance = toCenter.length();
 
-    float distance = r.length();
+    if (distance < 1.0f)
+        return QVector2D(0.0f, 0.0f);
 
-    if(distance < 1.0f)
-        return;
+    QVector2D radial = toCenter.normalized();
+    QVector2D tangential(-radial.y(), radial.x());
 
-    QVector2D radial =
-        r.normalized();
+    const float radialStrength = getForceMagnitude(distance);
+    const float tangentialStrength = radialStrength * TANGENTIAL_FACTOR;
 
-    QVector2D tangential(
-        -radial.y(),
-        radial.x()
-        );
+    QVector2D frameVelocity =
+        (radial * radialStrength + tangential * tangentialStrength) * dt;
 
-    // ==========================
-    // ZONAS DE INFLUENCIA
-    // ==========================
-
-    float Kr;
-
-    if(distance > 500.0f)
+    if (frameVelocity.length() > MAX_EXTERNAL_SPEED)
     {
-        // Zona 1
-        Kr = 1500.0f;
+        frameVelocity.normalize();
+        frameVelocity *= MAX_EXTERNAL_SPEED;
     }
-    else if(distance > 350.0f)
+
+    return frameVelocity;
+}
+
+float Whirlpool::getForceMagnitude(float distance) const
+{
+    if (distance <= 1.0f)
+        return 0.0f;
+
+    float radialBase = 0.0f;
+
+    // Expansión grande del radio útil:
+    // prácticamente toda la arena ya siente presión
+    if (distance > 950.0f)
     {
-        // Zona 2
-        Kr = 4000.0f;
+        radialBase = 140.0f;
     }
-    else if(distance > 200.0f)
+    else if (distance > 800.0f)
     {
-        // Zona 3
-        Kr = 8000.0f;
+        radialBase = 230.0f;
+    }
+    else if (distance > 650.0f)
+    {
+        radialBase = 360.0f;
+    }
+    else if (distance > 500.0f)
+    {
+        radialBase = 520.0f;
+    }
+    else if (distance > 380.0f)
+    {
+        radialBase = 760.0f;
+    }
+    else if (distance > 260.0f)
+    {
+        radialBase = 1080.0f;
+    }
+    else if (distance > 160.0f)
+    {
+        radialBase = 1500.0f;
+    }
+    else if (distance > 90.0f)
+    {
+        radialBase = 2100.0f;
     }
     else
     {
-        // Zona 4
-        Kr = 15000.0f;
+        radialBase = 2900.0f;
     }
 
-    float Kt = 1200.0f;
+    // Refuerzo continuo desde muy lejos
+    float proximityBoost = 1.0f + ((1100.0f - distance) / 260.0f);
 
-    // ==========================
-    // FUERZAS DEL REMOLINO
-    // ==========================
+    if (proximityBoost < 1.0f)
+        proximityBoost = 1.0f;
 
-    float radialStrength =
-        Kr / distance;
-
-    float tangentialStrength =
-        Kt / distance;
-
-    QVector2D acceleration =
-        radial * radialStrength +
-        tangential * tangentialStrength;
-
-
-    // Ec mov
-    // v = v + a·dt
-
-
-    QVector2D newVelocity =
-        player->getVelocity()
-        +
-        acceleration * dt;
-
-    // Limite para evitar explosiones numéricas
-
-    float maxSpeed = 450.0f;
-
-    if(newVelocity.length() > maxSpeed)
-    {
-        newVelocity.normalize();
-        newVelocity *= maxSpeed;
-    }
-
-    player->setVelocity(newVelocity);
+    return radialBase * proximityBoost * force;
 }
 
-bool Whirlpool::isInsideDeathZone(PlayerLevel2* player)
+bool Whirlpool::isInsideDeathZone(PlayerLevel2* player) const
 {
-    if(!player)
+    if (!player)
         return false;
 
-    float distance =
-        (center -
-         player->getPosition()).length();
-
+    const float distance = (center - player->getPosition()).length();
     return distance <= deathRadius;
 }

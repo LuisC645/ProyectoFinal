@@ -9,33 +9,25 @@
 #include <QGraphicsView>
 #include <QKeyEvent>
 #include <QPen>
-#include <QDebug>
 #include <QTimer>
+
+#include "../entities/enemy2.h"
+#include "../entities/item.h"
+#include "../entities/obstacle.h"
 #include "../entities/playerlevel2.h"
 
 namespace
 {
 constexpr int WINDOW_WIDTH = 1600;
 constexpr int WINDOW_HEIGHT = 600;
+
 constexpr int SCENE_X = 0;
 constexpr int SCENE_Y = 0;
 constexpr int SCENE_WIDTH = 1600;
 constexpr int SCENE_HEIGHT = 600;
+
 constexpr int FRAME_INTERVAL_MS = 16;
 constexpr float DELTA_TIME = 0.016f;
-
-constexpr int WHIRLPOOL_X = 500;
-constexpr int WHIRLPOOL_Y = 0;
-constexpr int WHIRLPOOL_SIZE = 600;
-
-constexpr int DEATH_ZONE_X = 750;
-constexpr int DEATH_ZONE_Y = 250;
-constexpr int DEATH_ZONE_SIZE = 100;
-
-constexpr int PLAYER_START_X = 0;
-constexpr int PLAYER_START_Y = 0;
-constexpr int PLAYER_WIDTH = 50;
-constexpr int PLAYER_HEIGHT = 50;
 
 constexpr int HUD_X = 20;
 constexpr int HUD_Y = 20;
@@ -56,6 +48,9 @@ MainWindowLevel2::MainWindowLevel2(QWidget *parent)
     setupWhirlpool();
     setupDeathZone();
     setupPlayer();
+    setupEnemy2();
+    setupFruits();
+    setupObstacles();
     setupHud();
     setupStateText();
 
@@ -87,24 +82,24 @@ void MainWindowLevel2::setupView()
 
     view->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     view->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-
-    // Evita que el QGraphicsView capture las flechas
     view->setFocusPolicy(Qt::NoFocus);
 
     setCentralWidget(view);
 
-    // La ventana principal recibe el teclado
     setFocusPolicy(Qt::StrongFocus);
     setFocus();
 }
 
 void MainWindowLevel2::setupWhirlpool()
 {
+    const QVector2D center = game->getWhirlpool().getCenter();
+    const float radius = 300.0f;
+
     whirlpoolVisual = scene->addEllipse(
-        WHIRLPOOL_X,
-        WHIRLPOOL_Y,
-        WHIRLPOOL_SIZE,
-        WHIRLPOOL_SIZE,
+        center.x() - radius,
+        center.y() - radius,
+        radius * 2.0f,
+        radius * 2.0f,
         QPen(Qt::darkGray, 3),
         QBrush(QColor(120, 120, 120, 80))
         );
@@ -112,11 +107,14 @@ void MainWindowLevel2::setupWhirlpool()
 
 void MainWindowLevel2::setupDeathZone()
 {
+    const QVector2D center = game->getWhirlpool().getCenter();
+    const float radius = game->getWhirlpool().getDeathRadius();
+
     deathZoneVisual = scene->addEllipse(
-        DEATH_ZONE_X,
-        DEATH_ZONE_Y,
-        DEATH_ZONE_SIZE,
-        DEATH_ZONE_SIZE,
+        center.x() - radius,
+        center.y() - radius,
+        radius * 2.0f,
+        radius * 2.0f,
         QPen(Qt::red, 3),
         QBrush(QColor(255, 0, 0, 120))
         );
@@ -124,14 +122,86 @@ void MainWindowLevel2::setupDeathZone()
 
 void MainWindowLevel2::setupPlayer()
 {
+    PlayerLevel2 *player = game->getPlayer();
+
+    if (!player)
+        return;
+
     playerVisual = scene->addRect(
-        PLAYER_START_X,
-        PLAYER_START_Y,
-        PLAYER_WIDTH,
-        PLAYER_HEIGHT,
+        0,
+        0,
+        player->getWidth(),
+        player->getHeight(),
         QPen(Qt::blue, 2),
         QBrush(Qt::blue)
         );
+
+    playerVisual->setPos(player->getPosition().x(), player->getPosition().y());
+}
+
+void MainWindowLevel2::setupEnemy2()
+{
+    Enemy2 *enemy2 = game->getEnemy2();
+
+    if (!enemy2)
+        return;
+
+    enemy2Visual = scene->addRect(
+        0,
+        0,
+        enemy2->getWidth(),
+        enemy2->getHeight(),
+        QPen(Qt::black, 2),
+        QBrush(QColor(180, 50, 180))
+        );
+
+    enemy2Visual->setPos(enemy2->getPosition().x(), enemy2->getPosition().y());
+}
+
+void MainWindowLevel2::setupFruits()
+{
+    const std::vector<Item*>& fruits = game->getFruits();
+
+    fruitVisuals.clear();
+    fruitVisuals.reserve(fruits.size());
+
+    for (Item* fruit : fruits)
+    {
+        QGraphicsEllipseItem *visual = scene->addEllipse(
+            0,
+            0,
+            fruit->getWidth(),
+            fruit->getHeight(),
+            QPen(Qt::yellow, 2),
+            QBrush(QColor(255, 200, 0))
+            );
+
+        visual->setPos(fruit->getPosition().x(), fruit->getPosition().y());
+        fruitVisuals.push_back(visual);
+    }
+}
+
+void MainWindowLevel2::setupObstacles()
+{
+    const std::vector<Obstacle*>& obstacles = game->getObstacles();
+
+    obstacleVisuals.clear();
+    obstacleVisuals.reserve(obstacles.size());
+
+    for (Obstacle* obstacle : obstacles)
+    {
+        QGraphicsRectItem *visual = scene->addRect(
+            0,
+            0,
+            obstacle->getWidth(),
+            obstacle->getHeight(),
+            QPen(Qt::darkRed, 2),
+            QBrush(QColor(200, 80, 40))
+            );
+
+        visual->setPos(obstacle->getPosition().x(), obstacle->getPosition().y());
+        obstacleVisuals.push_back(visual);
+    }
 }
 
 void MainWindowLevel2::setupHud()
@@ -159,8 +229,6 @@ void MainWindowLevel2::setupTimer()
 
 void MainWindowLevel2::keyPressEvent(QKeyEvent *event)
 {
-    qDebug() << "KEY PRESS:" << event->key();
-
     PlayerLevel2 *player = game->getPlayer();
 
     if (!player)
@@ -192,8 +260,6 @@ void MainWindowLevel2::keyPressEvent(QKeyEvent *event)
 
 void MainWindowLevel2::keyReleaseEvent(QKeyEvent *event)
 {
-    qDebug() << "KEY RELEASE:" << event->key();
-
     PlayerLevel2 *player = game->getPlayer();
 
     if (!player)
@@ -216,44 +282,146 @@ void MainWindowLevel2::keyReleaseEvent(QKeyEvent *event)
         break;
     }
 }
+
 void MainWindowLevel2::updateGameLoop()
 {
     game->update(DELTA_TIME);
 
-    PlayerLevel2 *player = game->getPlayer();
-    if (!player)
-        return;
-
     updatePlayerVisual();
+    updateEnemy2Visual();
+    updateFruitVisuals();
+    updateObstacleVisuals();
+    rebuildProjectilesIfNeeded();
+    updateProjectileVisuals();
     updateHud();
     updateStateText();
+}
+
+void MainWindowLevel2::rebuildProjectilesIfNeeded()
+{
+    const std::vector<Obstacle*>& projectiles = game->getProjectiles();
+
+    if (projectileVisuals.size() == projectiles.size())
+        return;
+
+    for (QGraphicsRectItem* visual : projectileVisuals)
+    {
+        scene->removeItem(visual);
+        delete visual;
+    }
+
+    projectileVisuals.clear();
+    projectileVisuals.reserve(projectiles.size());
+
+    for (Obstacle* projectile : projectiles)
+    {
+        QGraphicsRectItem *visual = scene->addRect(
+            0,
+            0,
+            projectile->getWidth(),
+            projectile->getHeight(),
+            QPen(Qt::green, 2),
+            QBrush(QColor(80, 255, 80))
+            );
+
+        visual->setPos(projectile->getPosition().x(), projectile->getPosition().y());
+        projectileVisuals.push_back(visual);
+    }
 }
 
 void MainWindowLevel2::updatePlayerVisual()
 {
     PlayerLevel2 *player = game->getPlayer();
 
-    if (!player)
+    if (!player || !playerVisual)
         return;
 
-    qDebug()
-        << "POS:"
-        << player->getPosition().x()
-        << player->getPosition().y();
+    playerVisual->setPos(player->getPosition().x(), player->getPosition().y());
 
-    playerVisual->setPos(
-        player->getPosition().x(),
-        player->getPosition().y()
-        );
+    if (player->getIsInvincible())
+        playerVisual->setBrush(QBrush(QColor(100, 180, 255)));
+    else if (player->getIsSlowed())
+        playerVisual->setBrush(QBrush(QColor(80, 80, 255)));
+    else
+        playerVisual->setBrush(QBrush(Qt::blue));
+}
+
+void MainWindowLevel2::updateEnemy2Visual()
+{
+    Enemy2 *enemy2 = game->getEnemy2();
+
+    if (!enemy2 || !enemy2Visual)
+        return;
+
+    enemy2Visual->setPos(enemy2->getPosition().x(), enemy2->getPosition().y());
+}
+
+void MainWindowLevel2::updateFruitVisuals()
+{
+    const std::vector<Item*>& fruits = game->getFruits();
+
+    for (std::size_t i = 0; i < fruits.size() && i < fruitVisuals.size(); ++i)
+    {
+        if (!fruits[i] || !fruitVisuals[i])
+            continue;
+
+        fruitVisuals[i]->setVisible(fruits[i]->isActive());
+        fruitVisuals[i]->setPos(fruits[i]->getPosition().x(), fruits[i]->getPosition().y());
+    }
+}
+
+void MainWindowLevel2::updateObstacleVisuals()
+{
+    const std::vector<Obstacle*>& obstacles = game->getObstacles();
+
+    for (std::size_t i = 0; i < obstacles.size() && i < obstacleVisuals.size(); ++i)
+    {
+        if (!obstacles[i] || !obstacleVisuals[i])
+            continue;
+
+        obstacleVisuals[i]->setVisible(obstacles[i]->isActive());
+        obstacleVisuals[i]->setPos(obstacles[i]->getPosition().x(), obstacles[i]->getPosition().y());
+    }
+}
+
+void MainWindowLevel2::updateProjectileVisuals()
+{
+    const std::vector<Obstacle*>& projectiles = game->getProjectiles();
+
+    for (std::size_t i = 0; i < projectiles.size() && i < projectileVisuals.size(); ++i)
+    {
+        if (!projectiles[i] || !projectileVisuals[i])
+            continue;
+
+        projectileVisuals[i]->setVisible(projectiles[i]->isActive());
+        projectileVisuals[i]->setPos(projectiles[i]->getPosition().x(), projectiles[i]->getPosition().y());
+    }
 }
 
 void MainWindowLevel2::updateHud()
 {
-    hudText->setPlainText(QString("Tiempo: %1").arg(game->getRemainingTime(), 0, 'f', 1));
+    PlayerLevel2 *player = game->getPlayer();
+
+    if (!player || !hudText)
+        return;
+
+    const float resistancePercent = player->getWhirlpoolResistance() * 100.0f;
+
+    hudText->setPlainText(
+        QString("Tiempo: %1   Vidas: %2   Frutas: %3   Resistencia: %4%   Velocidad: %5")
+            .arg(game->getRemainingTime(), 0, 'f', 1)
+            .arg(player->getLives())
+            .arg(player->getCollectedFruits())
+            .arg(resistancePercent, 0, 'f', 0)
+            .arg(player->getCurrentSpeed(), 0, 'f', 0)
+        );
 }
 
 void MainWindowLevel2::updateStateText()
 {
+    if (!stateText)
+        return;
+
     switch (game->getStatus())
     {
     case GameLevel2Status::GAME_OVER:
