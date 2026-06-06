@@ -458,7 +458,6 @@ void MainWindow::updateLevel1()
     float currentCrashY = playerY + 130.0f;
 
     float cameraLeft = playerX - 200.0f;
-    // physicsHitboxDebug->setRect(playerX - playerW * 0.5f, playerY + 155.0f - playerH, playerW, playerH);
 
     float offset1 = fmod(cameraLeft * 0.15f, bgLayer1Width);
     bgLayer1->setPos(cameraLeft - offset1, -200.0f);
@@ -521,7 +520,7 @@ void MainWindow::updateLevel1()
 
     if(enemy)
     {
-        // enemyDebugRect->setRect(enemy->getPosition().x(), enemy->getPosition().y(), enemy->getWidth(), enemy->getHeight());
+        enemyDebugRect->setRect(enemy->getPosition().x(), enemy->getPosition().y(), enemy->getWidth(), enemy->getHeight());
         enemyDebugRect->setVisible(enemy->isActive());
     }
 
@@ -574,10 +573,10 @@ void MainWindow::updateLevel1()
 
         visualEntities.push_back(sprite);
 
-        // QGraphicsRectItem* physicsBox = scene->addRect( 0, 0, hitboxW, hitboxH, QPen(Qt::cyan,2));
-        // physicsBox->setBrush(QColor(0,255,255,40));
-        // physicsBox->setZValue(500);
-        // obstaclePhysicsDebug.push_back(physicsBox);
+        //QGraphicsRectItem* physicsBox = scene->addRect( 0, 0, hitboxW, hitboxH, QPen(Qt::cyan,2));
+        //physicsBox->setBrush(QColor(0,255,255,40));
+        //physicsBox->setZValue(500);
+        //obstaclePhysicsDebug.push_back(physicsBox);
     }
 
     const auto& backendItems = game->getItems();
