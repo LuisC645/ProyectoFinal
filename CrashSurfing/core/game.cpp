@@ -217,7 +217,7 @@ void Game::checkCollisions()
         float eW = ent->getWidth();
         float eH = ent->getHeight();
 
-        if (pX < eX + eW && pX + pW > eX && pY + pH > eY)
+        if (pX < eX + eW && pX + pW > eX && pY < eY + eH && pY + pH > eY)
         {
             player->onCollision(ent);
             playerHit = true;

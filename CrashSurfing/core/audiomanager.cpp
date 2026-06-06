@@ -16,8 +16,7 @@ AudioManager::AudioManager()
 
         menuMusic->setSource(QUrl("qrc:/new/prefix1/resources/MainMenu.mp3"));
 
-        if(menuMusic->source().isEmpty())
-            throw std::runtime_error("Menu audio");
+        if(menuMusic->source().isEmpty()){ throw std::runtime_error("Menu audio"); }
 
         QObject::connect(menuMusic, &QMediaPlayer::mediaStatusChanged, [this](QMediaPlayer::MediaStatus status){
             if(status == QMediaPlayer::EndOfMedia){
@@ -54,8 +53,7 @@ AudioManager::AudioManager()
         fruitOutput->setVolume(1.0f);
         fruitSound->setSource(QUrl("qrc:/new/prefix1/resources/fruit.mp3"));
 
-        if(fruitSound->source().isEmpty())
-            throw std::runtime_error("Fruit audio");
+        if(fruitSound->source().isEmpty()){ throw std::runtime_error("Fruit audio"); }
 
         // Hit
         hitSound = new QMediaPlayer();
@@ -65,8 +63,7 @@ AudioManager::AudioManager()
         hitOutput->setVolume(1.0f);
         hitSound->setSource(QUrl("qrc:/new/prefix1/resources/hit.mp3"));
 
-        if(hitSound->source().isEmpty())
-            throw std::runtime_error("Hit audio");
+        if(hitSound->source().isEmpty()){ throw std::runtime_error("Hit audio"); }
     }
     catch(...)
     {

@@ -47,10 +47,7 @@ void Enemy::update(float dt)
 
     tiempoEnemy += dt * 0.5f;
 
-    position.setY(
-        120.0f +
-        std::sin(tiempoEnemy) * 60.0f
-        );
+    position.setY(120.0f +  std::sin(tiempoEnemy) * 60.0f);
 }
 
 // Verifica disparo disponible
