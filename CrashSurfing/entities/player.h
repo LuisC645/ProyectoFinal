@@ -11,38 +11,61 @@ private:
     float gravity;
     float floorY;
 
-    int lives;
-    int collectedFruits;
+    unsigned char lives;
+    unsigned short collectedFruits;
     bool isGrounded;
 
-    // Invencibilidad
     bool isInvincible;
     float invincibilityTimer;
     float invincibilityDuration;
 
     bool isGlutton;
-    int fruitsNeededForNextRush;
+    unsigned short fruitsNeededForNextRush;
 
 public:
     Player();
     virtual ~Player() override = default;
 
+    // Actualiza fisica y estados
     virtual void update(float dt) override;
+
+    // Procesa colisiones
     virtual void onCollision(Entity* other) override;
 
+    // Realiza salto
     void jump();
+
+    // Aplica daño
     void takeDamage();
+
+    // Activa invencibilidad
     void startInvincibility();
+
+    // Recolecta fruta
     void collectItem();
+
+    // Reinicia estadisticas
     void reset();
 
     // Getters
-    int getLives() const { return lives; }
-    int getCollectedFruits() const { return collectedFruits; }
-    bool getIsGlutton() const { return isGlutton; }
-    bool getIsInvincible() const { return isInvincible; }
-    bool getIsGrounded() const { return isGrounded; }
+    unsigned char getLives() const { return lives; }
 
+    unsigned short getCollectedFruits() const
+    {
+        return collectedFruits;
+    }
+
+    bool getIsGlutton() const { return isGlutton; }
+
+    bool getIsInvincible() const
+    {
+        return isInvincible;
+    }
+
+    bool getIsGrounded() const
+    {
+        return isGrounded;
+    }
 };
 
 #endif // PLAYER_H

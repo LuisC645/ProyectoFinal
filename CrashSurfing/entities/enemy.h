@@ -9,24 +9,30 @@ class Enemy : public Entity
 {
 private:
 
-    // Puntero al agente
+    // Controlador IA
     Agent* agent;
+
     unsigned short health;
 
     float shootTimer;
     float shootCooldown;
 
-    int misses;
+    unsigned short misses;
 
     float throwForce;
 
     float phase;
 
 public:
+    // Inicializa enemigo
     Enemy();
+
     ~Enemy();
 
+    // Actualiza comportamiento
     void update(float dt) override;
+
+    // Procesa colisiones
     void onCollision(Entity* e) override;
 
     void setAgent(Agent* a) { agent = a; }
@@ -34,9 +40,10 @@ public:
 
     unsigned short getHealth() const { return health; }
     void setHealth(unsigned short h) { health = h; }
-    bool canShoot() const;
-    void resetShootTimer();
 
+    bool canShoot() const;
+
+    void resetShootTimer();
 };
 
 #endif // ENEMY_H

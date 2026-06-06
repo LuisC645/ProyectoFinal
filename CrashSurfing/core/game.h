@@ -9,51 +9,73 @@ class Player;
 class Item;
 class Enemy;
 
-class Game {    
+class Game
+{
 private:
     Entity* player;
     Enemy* enemy;
+
     std::vector<Entity*> entities;
     std::vector<Item*> items;
 
-    int score;
     GameStatus status;
+
     Difficulty difficult = Difficulty::EASY;
-    int fruits2Win = 20;
+
+    unsigned short fruits2Win = 20;
 
     bool fruitCollected = false;
     bool playerHit = false;
 
 public:
+    // Inicializa juego
     Game();
+
     ~Game();
 
+    // Actualiza logica del juego
     void update(float dt);
+
+    // Agrega entidad al nivel
     void addEntity(Entity* e);
+
+    // Carga entidades iniciales
     void loadLevel();
+
+    // Detecta colisiones
     void checkCollisions();
+
+    // Reinicia partida
     void reset();
 
     GameStatus getStatus() const { return status; }
     void setStatus(GameStatus newStatus) { status = newStatus; }
 
-    // int getScore() const { return score; }
-
+    // Genera proyectil enemigo
     void spawnProjectile();
 
     Entity* getPlayer() const { return player; }
     Enemy* getEnemy() const { return enemy; }
-    const std::vector<Entity*>& getEntities() const { return entities; }
-    const std::vector<Item*>& getItems() const { return items; }
+
+    const std::vector<Entity*>& getEntities() const
+    {
+        return entities;
+    }
+
+    const std::vector<Item*>& getItems() const
+    {
+        return items;
+    }
 
     bool consumeFruitCollected();
     bool consumePlayerHit();
 
+    // Configura dificultad
     void setDifficulty(Difficulty difficulty);
-    int getFruits2Win() const;
+
+    unsigned short getFruits2Win() const;
 
     Difficulty getDifficult() const;
-
 };
 
 #endif // GAME_H

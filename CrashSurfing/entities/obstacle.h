@@ -11,10 +11,15 @@ private:
     float initialY;
 
 public:
+    // Inicializa obstaculo
     Obstacle(QString type, QVector2D position);
+
     virtual ~Obstacle() override = default;
 
+    // Actualiza comportamiento
     virtual void update(float dt) override;
+
+    // Procesa colisiones
     virtual void onCollision(Entity* other) override;
 
     QString getType() const { return type; }

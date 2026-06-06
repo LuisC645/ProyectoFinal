@@ -16,5 +16,9 @@
         <file>resources/MainMenu.mp3</file>
         <file>resources/fruit.mp3</file>
         <file>resources/hit.mp3</file>
+        <file>resources/bglvl2.png</file>
+        <file>resources/GameOver2.png</file>
+        <file>resources/tronco.png</file>
+        <file>resources/crash2.png</file>
     </qresource>
 </RCC>

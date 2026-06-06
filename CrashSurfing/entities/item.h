@@ -8,21 +8,21 @@
 class Item : public Entity {
 private:
     QString type;
-    float width;
-    float height;
     bool isCollected;
 
 public:
+    // Inicializa item
     Item(QString type, QVector2D position, float width, float height);
+
     virtual ~Item() override = default;
 
+    // Actualiza comportamiento
     virtual void update(float dt) override;
+
+    // Procesa colisiones
     virtual void onCollision(Entity* other) override;
 
-    // === GETTERS Y SETTERS ===
     QString getType() const { return type; }
-    float getWidth() const { return width; }
-    float getHeight() const { return height; }
 
     bool getIsCollected() const { return isCollected; }
     void setIsCollected(bool collected) { isCollected = collected; }
