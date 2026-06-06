@@ -9,107 +9,147 @@
 #include <cstdlib>
 #include <ctime>
 
+// Inicializa juego
 Game::Game()
 {
     player = new Player();
     enemy = new Enemy();
-    score = 0;
+
     status = GameStatus::MENU;
     difficult = Difficulty::EASY;
 }
 
+// Libera memoria del juego
 Game::~Game()
 {
     delete player;
     delete enemy;
-    for (Entity* e : entities) {
+
+    for (Entity* e : entities)
+    {
         delete e;
     }
+
     entities.clear();
-    for (Item* i : items) {
+
+    for (Item* i : items)
+    {
         delete i;
     }
+
     items.clear();
 }
 
+// Actualiza logica principal
 void Game::update(float dt)
 {
-    if (status != GameStatus::PLAYING){ return; }
+    if (status != GameStatus::PLAYING)
+    {
+        return;
+    }
 
-    // Si el juego se congela un momento, evitamos que el 'dt' sea grande y crashee
-    if (dt > 0.1f) dt = 0.1f;
+    if (dt > 0.1f)
+    {
+        dt = 0.1f;
+    }
 
-    // 4 por dt
-    const int SUB_STEPS = 4;
+    constexpr unsigned char SUB_STEPS = 4;
+
     float subDt = dt / SUB_STEPS;
 
-    for (int paso = 0; paso < SUB_STEPS; ++paso)
+    for (unsigned char paso = 0; paso < SUB_STEPS; ++paso)
     {
-        if (player) {
+        if (player)
+        {
             player->update(subDt);
         }
-        for (Entity* e : entities) {
-            if (e->isActive()) e->update(subDt);
+
+        for (Entity* e : entities)
+        {
+            if (e->isActive())
+            {
+                e->update(subDt);
+            }
         }
-        for (Item* i : items) {
-            if (!i->getIsCollected()) i->update(subDt);
+
+        for (Item* i : items)
+        {
+            if (!i->getIsCollected())
+            {
+                i->update(subDt);
+            }
         }
 
         checkCollisions();
 
-        // Estados de jugador
         Player* p = dynamic_cast<Player*>(player);
-        if (p) {
-            if (p->getLives() <= 0) {
+
+        if (p)
+        {
+            if (p->getLives() <= 0)
+            {
                 status = GameStatus::GAME_OVER;
                 return;
             }
-            if (p->getPosition().x() >= 25000.0f) {
+
+            if (p->getPosition().x() >= 25000.0f)
+            {
                 status = GameStatus::LEVEL_COMPLETE;
                 return;
             }
         }
 
         enemy->update(dt);
+
         enemy->setPosition(QVector2D(player->getPosition().x() + 1000.0f, enemy->getPosition().y()));
 
-        if(enemy->canShoot())
+        if (enemy->canShoot())
         {
-            // qDebug() << "DISPARO";
             enemy->resetShootTimer();
             spawnProjectile();
         }
     }
 }
 
+// Reinicia partida
 void Game::reset()
 {
-    score = 0;
     status = GameStatus::MENU;
 
     Player* p = dynamic_cast<Player*>(player);
-    if (p) p->reset();
 
-    enemy->setPosition(QVector2D(1100.0f,250.0f));
+    if (p)
+    {
+        p->reset();
+    }
+
+    enemy->setPosition(QVector2D(1100.0f, 250.0f));
     enemy->setActive(true);
 
     loadLevel();
 }
 
+// Genera entidades del nivel
 void Game::loadLevel()
 {
-    for (Entity* e : entities){
+    for (Entity* e : entities)
+    {
         delete e;
     }
+
     entities.clear();
 
-    for (Item* i : items){
+    for (Item* i : items)
+    {
         delete i;
     }
+
     items.clear();
 
     static bool seeded = false;
-    if (!seeded) {
+
+    if (!seeded)
+    {
         std::srand(std::time(nullptr));
         seeded = true;
     }
@@ -118,32 +158,45 @@ void Game::loadLevel()
     float endX = 25000.0f;
     float floorY = 380.0f;
 
-    while (currentX < endX) {
+    while (currentX < endX)
+    {
         float spacing = 200.0f + (std::rand() % 150);
+
         currentX += spacing;
 
-        if (currentX >= endX){ break; }
-
-        int spawnChance = std::rand() % 100;
-
-        if (spawnChance < 20) {
-            entities.push_back(new Obstacle("floating", QVector2D(currentX, 270.0f)));
+        if (currentX >= endX)
+        {
+            break;
         }
-        else if (spawnChance < 60) {
+
+        unsigned char spawnChance = std::rand() % 100;
+
+        if (spawnChance < 20)
+        {
+            entities.push_back(new Obstacle( "floating", QVector2D(currentX, 270.0f)));
+        }
+        else if (spawnChance < 60)
+        {
             entities.push_back(new Obstacle("log", QVector2D(currentX, floorY - 15.0f)));
         }
-        else {
+        else
+        {
             float fruitHeight = 230.0f + (std::rand() % 136);
-            items.push_back(new Item("fruit", QVector2D(currentX, fruitHeight), 25, 25));
+
+            items.push_back(new Item("fruit", QVector2D(currentX, fruitHeight), 25.0f, 25.0f));
 
             currentX += 50.0f;
         }
     }
 }
 
+// Detecta colisiones
 void Game::checkCollisions()
 {
-    if (!player || !player->isActive()){ return; }
+    if (!player || !player->isActive())
+    {
+        return;
+    }
 
     float pW = player->getWidth();
     float pH = player->getHeight();
@@ -153,7 +206,10 @@ void Game::checkCollisions()
 
     for (Entity* ent : entities)
     {
-        if (!ent->isActive()){ continue; }
+        if (!ent->isActive())
+        {
+            continue;
+        }
 
         float eX = ent->getPosition().x();
         float eY = ent->getPosition().y();
@@ -161,7 +217,8 @@ void Game::checkCollisions()
         float eW = ent->getWidth();
         float eH = ent->getHeight();
 
-        if (pX < eX + eW && pX + pW > eX && pY < eY + eH && pY + pH > eY){
+        if (pX < eX + eW && pX + pW > eX && pY + pH > eY)
+        {
             player->onCollision(ent);
             playerHit = true;
         }
@@ -169,7 +226,10 @@ void Game::checkCollisions()
 
     for (Item* item : items)
     {
-        if (!item->isActive()){ continue; }
+        if (!item->isActive())
+        {
+            continue;
+        }
 
         float iX = item->getPosition().x();
         float iY = item->getPosition().y();
@@ -185,10 +245,13 @@ void Game::checkCollisions()
     }
 }
 
+// Genera proyectil enemigo
 void Game::spawnProjectile()
 {
-    if(!enemy || !player)
+    if (!enemy || !player)
+    {
         return;
+    }
 
     float playerX = player->getPosition().x();
     float playerY = player->getPosition().y();
@@ -205,31 +268,42 @@ void Game::spawnProjectile()
 
     qDebug() << (difficult == Difficulty::EASY ? "EASY" : "HARD");
 
-    if(difficult == Difficulty::EASY)
+    if (difficult == Difficulty::EASY)
     {
         shootProbability = 35.0f;
         predictionFactor = 0.5f;
         aimErrorRange = 120.0f;
-        qDebug() << "Easy";
+
+        // qDebug() << "Easy";
     }
     else
     {
         shootProbability = 75.0f;
         predictionFactor = 1.0f;
         aimErrorRange = 40.0f;
-        qDebug() << "Hard";
+
+        // qDebug() << "Hard";
     }
 
-    int prob = rand() % 100;
+    unsigned char prob = rand() % 100;
 
-    if(prob > shootProbability){ return; }
+    if (prob > shootProbability)
+    {
+        return;
+    }
 
     float distance = enemyX - playerX;
     float predictionTime = distance / 500.0f;
 
-    if(predictionTime < 0.4f){ predictionTime = 0.4f; }
+    if (predictionTime < 0.4f)
+    {
+        predictionTime = 0.4f;
+    }
 
-    if(predictionTime > 1.5f){ predictionTime = 1.5f; }
+    if (predictionTime > 1.5f)
+    {
+        predictionTime = 1.5f;
+    }
 
     float futureX = playerX + playerVX * predictionTime * predictionFactor;
 
@@ -238,6 +312,7 @@ void Game::spawnProjectile()
     Obstacle* projectile = new Obstacle( "saw", QVector2D(enemyX, enemyY));
 
     float dx = enemyX - futureX;
+
     float vx = -450.0f;
 
     float vy = -180.0f - (dx * 0.05f) + (futureY - enemyY) * 0.25f;
@@ -246,16 +321,25 @@ void Game::spawnProjectile()
 
     vy += aimError;
 
-    if(vy < -450.0f){ vy = -450.0f; }
-    if(vy > -120.0f){ vy = -120.0f; }
+    if (vy < -450.0f)
+    {
+        vy = -450.0f;
+    }
+
+    if (vy > -120.0f)
+    {
+        vy = -120.0f;
+    }
 
     projectile->setVelocity(QVector2D(vx, vy));
+
     entities.push_back(projectile);
 }
 
+// Consume evento de fruta
 bool Game::consumeFruitCollected()
 {
-    if(fruitCollected)
+    if (fruitCollected)
     {
         fruitCollected = false;
         return true;
@@ -264,9 +348,10 @@ bool Game::consumeFruitCollected()
     return false;
 }
 
+// Consume evento de daño
 bool Game::consumePlayerHit()
 {
-    if(playerHit)
+    if (playerHit)
     {
         playerHit = false;
         return true;
@@ -275,21 +360,29 @@ bool Game::consumePlayerHit()
     return false;
 }
 
+// Configura dificultad
 void Game::setDifficulty(Difficulty difficulty)
 {
-    this->difficult = difficulty;
+    difficult = difficulty;
 
-    if(difficulty == Difficulty::EASY){ fruits2Win = 15; }
-    else{ fruits2Win = 20; }
+    if (difficulty == Difficulty::EASY)
+    {
+        fruits2Win = 15;
+    }
+    else
+    {
+        fruits2Win = 20;
+    }
 
-    qDebug() << "Game difficulty:" << (difficulty == Difficulty::EASY ? "EASY" : "HARD");
+    // qDebug() << "Game difficulty:" << (difficulty == Difficulty::EASY ? "EASY" : "HARD");
 }
 
-int Game::getFruits2Win() const
+unsigned short Game::getFruits2Win() const
 {
     return fruits2Win;
 }
 
-Difficulty Game::getDifficult() const {
+Difficulty Game::getDifficult() const
+{
     return difficult;
 }

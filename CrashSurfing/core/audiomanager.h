@@ -22,15 +22,25 @@ private:
 
 public:
 
+    // Inicializa recursos de audio
     AudioManager();
 
+    // Reproduce musica del menu
     void playMenuMusic();
+
+    // Detiene musica del menu
     void stopMenuMusic();
 
+    // Reproduce musica del juego
     void playGameMusic();
+
+    // Detiene musica del juego
     void stopGameMusic();
 
+    // Reproduce sonido de fruta
     void playFruitSound();
+
+    // Reproduce sonido de daño
     void playHitSound();
 };
 

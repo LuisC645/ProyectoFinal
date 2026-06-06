@@ -11,6 +11,7 @@ CONFIG += c++17
 SOURCES += \
     core/audiomanager.cpp \
     core/game.cpp \
+    core/gamelevel2.cpp \
     core/uimanager.cpp \
     core\main.cpp \
     core\mainwindow.cpp \
@@ -18,11 +19,14 @@ SOURCES += \
     entities/entity.cpp \
     entities/item.cpp \
     entities/obstacle.cpp \
-    entities/player.cpp
+    entities/player.cpp \
+    entities/player2.cpp \
+    entities/whirlpool.cpp
 
 HEADERS += \
     core/audiomanager.h \
     core/game.h \
+    core/gamelevel2.h \
     core/gamestate.h \
     core/uimanager.h \
     core\mainwindow.h \
@@ -30,7 +34,9 @@ HEADERS += \
     entities/entity.h \
     entities/item.h \
     entities/obstacle.h \
-    entities/player.h
+    entities/player.h \
+    entities/player2.h \
+    entities/whirlpool.h
 
 FORMS += \
     core\mainwindow.ui
